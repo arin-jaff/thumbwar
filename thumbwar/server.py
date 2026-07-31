@@ -134,17 +134,24 @@ class Hub:
 
     def dirs(self) -> list:
         rows = []
+
+        def visit(d: Path, depth: int) -> None:
+            try:
+                if (d / ".git").exists():
+                    rows.append({"path": str(d), "name": d.name,
+                                 "mtime": d.stat().st_mtime})
+                    return
+                if depth > 0:
+                    for child in d.iterdir():
+                        if child.is_dir() and not child.name.startswith("."):
+                            visit(child, depth - 1)
+            except OSError:
+                pass
+
         for root in self.settings["roots"]:
             base = Path(os.path.expanduser(root))
-            if not base.is_dir():
-                continue
-            for child in base.iterdir():
-                try:
-                    if child.is_dir() and (child / ".git").exists():
-                        rows.append({"path": str(child), "name": child.name,
-                                     "mtime": child.stat().st_mtime})
-                except OSError:
-                    continue
+            if base.is_dir():
+                visit(base, 2)
         rows.sort(key=lambda r: -r["mtime"])
         return rows[:40]
 

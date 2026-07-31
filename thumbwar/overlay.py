@@ -53,6 +53,20 @@ def main() -> None:
         _notify_fallback(args.title, args.body or "come see what they made")
         sys.exit(3)
 
+    def draw_text(s, x, y, size, rgb, *, bold=False, mono=False, alpha=1.0):
+        font = (AppKit.NSFont.monospacedSystemFontOfSize_weight_(
+                    size, AppKit.NSFontWeightSemibold) if mono
+                else AppKit.NSFont.systemFontOfSize_weight_(
+                    size, AppKit.NSFontWeightBold if bold
+                    else AppKit.NSFontWeightMedium))
+        attrs = {
+            AppKit.NSFontAttributeName: font,
+            AppKit.NSForegroundColorAttributeName:
+                AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(*rgb, alpha),
+        }
+        AppKit.NSString.stringWithString_(s).drawAtPoint_withAttributes_(
+            (x, y), attrs)
+
     class Card(AppKit.NSView):
         def initWithArgs_(self, a):
             self = objc.super(Card, self).initWithFrame_(
@@ -101,11 +115,11 @@ def main() -> None:
 
             now = time.monotonic()
             frame = SPINNER[int(now * 8) % len(SPINNER)]
-            self._text(frame, 30, 40, 34, ORANGE, mono=True)
-            self._text(self.title, 78, 40, 21, FOAM, bold=True)
-            self._text(self.body, 78, 74, 13, MINT)
+            draw_text(frame, 30, 40, 34, ORANGE, mono=True)
+            draw_text(self.title, 78, 40, 21, FOAM, bold=True)
+            draw_text(self.body, 78, 74, 13, MINT)
             hint = "click to dismiss" + ("" if self.seconds > 0 else " . return to jump back")
-            self._text(hint, 78, 108, 11, FOAM, alpha=0.55)
+            draw_text(hint, 78, 108, 11, FOAM, alpha=0.55)
 
             if self.seconds > 0:
                 left = max(0.0, self.seconds - (now - self.began))
@@ -125,23 +139,8 @@ def main() -> None:
                 color(MINT).setStroke()
                 arc.stroke()
                 num = str(int(math.ceil(left)))
-                self._text(num, cx - (11 * len(num)) / 2, cy - 14, 22, FOAM,
-                           bold=True, flip_fix=True)
-
-        def _text(self, s, x, y, size, rgb, *, bold=False, mono=False,
-                  alpha=1.0, flip_fix=False):
-            font = (AppKit.NSFont.monospacedSystemFontOfSize_weight_(
-                        size, AppKit.NSFontWeightSemibold) if mono
-                    else AppKit.NSFont.systemFontOfSize_weight_(
-                        size, AppKit.NSFontWeightBold if bold
-                        else AppKit.NSFontWeightMedium))
-            attrs = {
-                AppKit.NSFontAttributeName: font,
-                AppKit.NSForegroundColorAttributeName:
-                    AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(*rgb, alpha),
-            }
-            AppKit.NSString.stringWithString_(s).drawAtPoint_withAttributes_(
-                (x, y), attrs)
+                draw_text(num, cx - (11 * len(num)) / 2, cy - 14, 22, FOAM,
+                          bold=True)
 
     class Panel(AppKit.NSPanel):
         def canBecomeKeyWindow(self):

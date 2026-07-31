@@ -17,8 +17,8 @@ RESET = "\x1b[0m"
 
 BANNER = rf"""
 {ORANGE} ✻{RESET}  ▀█▀ █ █ █ █ █▄█ █▀▄ █ █ █▀█ █▀▄
-{ORANGE}    {MINT} █ {RESET} █▀█ █ █ █ █ █▀▄ ▀▄▀ █▀█ █▀▄
-{ORANGE}    {MINT} ▀ {RESET} ▀ ▀ ▀▀▀ ▀ ▀ ▀▀  ▀ ▀ ▀ ▀ ▀ ▀
+{ORANGE}    {MINT} █ {RESET} █▀█ █ █ █ █ █▀▄ █▄█ █▀█ █▀▄
+{ORANGE}    {MINT} ▀ {RESET} ▀ ▀ ▀▀▀ ▀ ▀ ▀▀  ▀▀▀ ▀ ▀ ▀ ▀
 {DIM}    vibe coding, gamified · v{__version__}{RESET}
 """
 

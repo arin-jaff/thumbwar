@@ -39,6 +39,7 @@ export function ack() {
   clearInterval(timer);
   timer = null;
   rumble('still');
+  for (const s of S.sessions.values()) s.finished = false;
   send({ t: 'ack' });
   if (S.mode === 'done') setMode('deck');
 }

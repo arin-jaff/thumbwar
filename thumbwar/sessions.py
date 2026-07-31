@@ -36,10 +36,12 @@ _ANSI_RE = re.compile(
     rb"\x1b(?:\[[0-9;?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[@-Z\\-_])"
 )
 
-#: phrases that mean claude is mid task. repainted with every spinner frame.
-BUSY_MARKERS = (b"esc to interrupt", b"ctrl+b to run in background")
+#: claude paints with cursor moves rather than spaces, so after stripping
+#: ansi the words run together. all matching is done space free.
+#: phrases that mean claude is mid task, repainted with every spinner frame.
+BUSY_MARKERS = (b"esctointerrupt", b"ctrl+btorun")
 #: phrases that mean claude is waiting on a human decision.
-PROMPT_MARKERS = (b"do you want", b"\xe2\x9d\xaf 1.", b"proceed?", b"(y/n)")
+PROMPT_MARKERS = (b"doyouwant", b"1.yes", b"entertoconfirm", b"proceed?", b"(y/n)")
 
 #: seconds of busy-marker silence before a session stops counting as working.
 BUSY_LINGER = 3.0
@@ -198,14 +200,16 @@ class SessionManager:
 
         if b"\x07" in chunk:
             sess.bell_at = now
-        plain = _ANSI_RE.sub(b"", chunk)
-        low = plain.lower()
+        plain = re.sub(rb"\s+", b"", _ANSI_RE.sub(b"", chunk)).lower()
+        low = plain
         if any(m in low for m in BUSY_MARKERS):
             if now - sess.busy_seen > BUSY_LINGER:
                 sess.work_started = now
                 sess.finished = False
                 self._all_done_latched = False
             sess.busy_seen = now
+            # a fresh work burst invalidates whatever prompt text came before
+            sess.tail = ""
         sess.tail = (sess.tail + plain.decode("utf-8", "replace"))[-2000:]
 
         self.broadcast({"t": "out", "id": sess.id,
@@ -215,6 +219,8 @@ class SessionManager:
         sess = self.sessions.get(sid)
         if not sess or sess.fd < 0:
             return
+        if sess.state == "needs_you":
+            sess.tail = ""            # the human just answered the prompt
         try:
             os.write(sess.fd, data)
         except OSError:
@@ -272,8 +278,7 @@ class SessionManager:
             return "dead"
         if now - sess.busy_seen < BUSY_LINGER:
             return "working"
-        low = sess.tail.lower()
-        if any(m.decode("utf-8", "replace") in low for m in PROMPT_MARKERS):
+        if any(m.decode() in sess.tail for m in PROMPT_MARKERS):
             return "needs_you"
         return "ready"
 
@@ -307,5 +312,8 @@ class SessionManager:
     def ack(self) -> None:
         """the human is back. clear finished flags and re arm the watcher."""
         for s in self.sessions.values():
-            s.finished = False
+            if s.finished:
+                s.finished = False
+                self.broadcast({"t": "status", "id": s.id,
+                                "state": s.state, "finished": False})
         self._all_done_latched = False

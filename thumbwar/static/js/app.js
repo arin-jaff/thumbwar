@@ -26,6 +26,7 @@ on('ws:hello', (m) => {
   S.pad.tmux = m.tmux;
   if (m.pad.available) S.pad.source = 'ornnpad';
   for (const info of m.sessions) deck.addSession(info);
+  deck.refresh();
   paintPad();
   if (m.away && !S.away) emit('ws:away', { on: true });
   renderHints();

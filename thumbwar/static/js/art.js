@@ -10,8 +10,8 @@ export const VERBS = [
 
 export const WORDMARK = String.raw`
 ▀█▀ █ █ █ █ █▄█ █▀▄ █ █ █▀█ █▀▄
- █  █▀█ █ █ █ █ █▀▄ ▀▄▀ █▀█ █▀▄
- ▀  ▀ ▀ ▀▀▀ ▀ ▀ ▀▀   ▀  ▀ ▀ ▀ ▀`;
+ █  █▀█ █ █ █ █ █▀▄ █▄█ █▀█ █▀▄
+ ▀  ▀ ▀ ▀▀▀ ▀ ▀ ▀▀  ▀▀▀ ▀ ▀ ▀ ▀`;
 
 export const GLYPH = {
   spark: '✻',
