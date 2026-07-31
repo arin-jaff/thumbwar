@@ -58,6 +58,14 @@ on('battery', () => {
 
 on('ws:toast', ({ text, kind }) => toast(text, kind));
 
+let pttWarned = false;
+on('ws:ptt', ({ ok, down, error }) => {
+  if (!ok && down === false && error && !pttWarned) {
+    pttWarned = true;
+    toast(error, 'error');
+  }
+});
+
 function toast(text, kind = '') {
   const d = document.createElement('div');
   d.className = 'toast ' + (kind || '');

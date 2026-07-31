@@ -51,6 +51,39 @@ MIN_WORK_SPAN = 4.0
 RING_MAX = 128 * 1024
 
 
+def feed_status(sess: "Session", chunk: bytes, now: float) -> bool:
+    """update a session's status trackers from one output chunk.
+
+    returns true when a fresh work burst began, so the manager can re arm
+    its all done latch.
+    """
+    sess.output_at = now
+    if b"\x07" in chunk:
+        sess.bell_at = now
+    plain = re.sub(rb"\s+", b"", _ANSI_RE.sub(b"", chunk)).lower()
+    fresh_burst = False
+    if any(m in plain for m in BUSY_MARKERS):
+        if now - sess.busy_seen > BUSY_LINGER:
+            sess.work_started = now
+            sess.finished = False
+            fresh_burst = True
+        sess.busy_seen = now
+        # a fresh work burst invalidates whatever prompt text came before
+        sess.tail = ""
+    sess.tail = (sess.tail + plain.decode("utf-8", "replace"))[-2000:]
+    return fresh_burst
+
+
+def compute_state(sess: "Session", now: float) -> str:
+    if sess.proc and sess.proc.poll() is not None:
+        return "dead"
+    if now - sess.busy_seen < BUSY_LINGER:
+        return "working"
+    if any(m.decode() in sess.tail for m in PROMPT_MARKERS):
+        return "needs_you"
+    return "ready"
+
+
 @dataclass
 class Session:
     id: str
@@ -192,26 +225,11 @@ class SessionManager:
         if not chunk:
             self._teardown(sess, kill=False)
             return
-        now = time.monotonic()
-        sess.output_at = now
         sess.ring.extend(chunk)
         if len(sess.ring) > RING_MAX:
             del sess.ring[: len(sess.ring) - RING_MAX]
-
-        if b"\x07" in chunk:
-            sess.bell_at = now
-        plain = re.sub(rb"\s+", b"", _ANSI_RE.sub(b"", chunk)).lower()
-        low = plain
-        if any(m in low for m in BUSY_MARKERS):
-            if now - sess.busy_seen > BUSY_LINGER:
-                sess.work_started = now
-                sess.finished = False
-                self._all_done_latched = False
-            sess.busy_seen = now
-            # a fresh work burst invalidates whatever prompt text came before
-            sess.tail = ""
-        sess.tail = (sess.tail + plain.decode("utf-8", "replace"))[-2000:]
-
+        if feed_status(sess, chunk, time.monotonic()):
+            self._all_done_latched = False
         self.broadcast({"t": "out", "id": sess.id,
                         "data": base64.b64encode(chunk).decode()})
 
@@ -273,22 +291,13 @@ class SessionManager:
 
     # -- status ------------------------------------------------------------
 
-    def _compute_state(self, sess: Session, now: float) -> str:
-        if sess.proc and sess.proc.poll() is not None:
-            return "dead"
-        if now - sess.busy_seen < BUSY_LINGER:
-            return "working"
-        if any(m.decode() in sess.tail for m in PROMPT_MARKERS):
-            return "needs_you"
-        return "ready"
-
     async def _tick_loop(self) -> None:
         while True:
             await asyncio.sleep(0.5)
             now = time.monotonic()
             any_working = False
             for sess in list(self.sessions.values()):
-                state = self._compute_state(sess, now)
+                state = compute_state(sess, now)
                 if state == "dead":
                     self._teardown(sess, kill=False)
                     continue
