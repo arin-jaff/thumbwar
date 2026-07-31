@@ -58,6 +58,12 @@ export class TermView {
     try { this.fit.fit(); } catch { /* host not laid out yet */ }
   }
 
+  // after a reconnect: clear, then replay the ring so nothing double prints
+  resync() {
+    this.term.reset();
+    send({ t: 'replay', id: this.id });
+  }
+
   scrollLines(n) { this.term.scrollLines(n); }
   scrollPages(n) { this.term.scrollPages(n); }
   toBottom() { this.term.scrollToBottom(); }

@@ -98,12 +98,17 @@ class Hub:
 
     async def _show_overlay(self, names) -> None:
         body = ", ".join(names[:3]) + (" and more" if len(names) > 3 else "")
-        proc = await asyncio.create_subprocess_exec(
-            sys.executable, "-m", "thumbwar.overlay",
-            "--seconds", str(self.settings["countdown_seconds"]),
-            "--title", "your agents are done",
-            "--body", body or "come see what they made")
-        code = await proc.wait()
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                sys.executable, "-m", "thumbwar.overlay",
+                "--seconds", str(self.settings["countdown_seconds"]),
+                "--title", "your agents are done",
+                "--body", body or "come see what they made")
+            code = await proc.wait()
+        except OSError as exc:
+            # never strand the human in away mode because a card failed to draw
+            self.toast(f"the overlay could not open: {exc}", "error")
+            code = 2
         self.broadcast({"t": "overlay_done", "code": code})
         if code == 0 and self.settings["auto_return"]:
             subprocess.Popen(["open", self.url])
@@ -158,6 +163,15 @@ class Hub:
     # -- ws ----------------------------------------------------------------
 
     async def ws_handler(self, request: web.Request) -> web.WebSocketResponse:
+        # browsers do not apply the same origin policy to websockets, so
+        # loopback alone would let any page you visit open this socket and
+        # type into your shells. a browser cannot forge Origin; tools that
+        # send none are already local processes with shell access anyway.
+        origin = request.headers.get("Origin")
+        if origin is not None and origin not in (
+                f"http://127.0.0.1:{self.port}", f"http://localhost:{self.port}"):
+            raise web.HTTPForbidden(text="bad origin")
+
         ws = web.WebSocketResponse(heartbeat=30)
         await ws.prepare(request)
         self.clients.add(ws)
@@ -179,7 +193,10 @@ class Hub:
                     m = json.loads(msg.data)
                 except ValueError:
                     continue
-                await self.handle(ws, m)
+                try:
+                    await self.handle(ws, m)
+                except Exception as exc:   # one bad message must not kill the deck
+                    self.toast(f"that action failed: {exc}", "error")
         finally:
             self.clients.discard(ws)
         return ws
@@ -267,6 +284,12 @@ class Hub:
                                 "tmux": self.mgr.list_tmux()})
         elif t == "overlay_test":
             self.loop.create_task(self._show_overlay(["overlay test"]))
+        elif t == "open_url":
+            # a pad press has no browser user activation, so window.open is
+            # blocked. hand the url to the os instead.
+            url = str(m.get("url", ""))
+            if url.startswith("https://"):
+                subprocess.Popen(["open", url])
         elif t == "interrupt_all":
             for s in self.mgr.sessions.values():
                 if s.state == "working":

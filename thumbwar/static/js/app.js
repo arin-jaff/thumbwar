@@ -24,8 +24,16 @@ on('ws:hello', (m) => {
   S.settings = m.settings;
   S.pad.available = m.pad.available;
   S.pad.tmux = m.tmux;
+  S.pad.error = m.pad.error || '';
   if (m.pad.available) S.pad.source = 'ornnpad';
-  for (const info of m.sessions) deck.addSession(info);
+  // hello also arrives on every reconnect, so reconcile rather than append
+  const live = new Set(m.sessions.map((s) => s.id));
+  for (const id of [...S.sessions.keys()]) if (!live.has(id)) deck.removeSession(id);
+  for (const info of m.sessions) {
+    const known = S.sessions.get(info.id);
+    if (known) { Object.assign(known, { state: info.state, finished: info.finished }); known.term.resync(); }
+    else deck.addSession(info);
+  }
   deck.refresh();
   paintPad();
   if (m.away && !S.away) emit('ws:away', { on: true });
@@ -42,6 +50,8 @@ function paintPad() {
   const words = { ornnpad: 'pad · hid', gamepad: 'pad · browser', waiting: 'pad · asleep', none: 'no pad' };
   padChip.textContent = words[S.pad.source] || 'no pad';
   padChip.classList.toggle('live', S.pad.source === 'ornnpad' || S.pad.source === 'gamepad');
+  padChip.title = S.pad.source === 'none' && S.pad.error
+    ? S.pad.error : 'press guide or ? for the controller map';
 }
 
 on('padchange', paintPad);
@@ -58,12 +68,19 @@ on('battery', () => {
 
 on('ws:toast', ({ text, kind }) => toast(text, kind));
 
-let pttWarned = false;
+const warned = new Set();
+function warnOnce(key, text) {
+  if (!text || warned.has(key)) return;
+  warned.add(key);
+  toast(text, 'error');
+}
+
 on('ws:ptt', ({ ok, down, error }) => {
-  if (!ok && down === false && error && !pttWarned) {
-    pttWarned = true;
-    toast(error, 'error');
-  }
+  if (!ok && down === false) warnOnce('ptt', error);
+});
+
+on('ws:overlay_done', ({ code }) => {
+  if (code === 3) warnOnce('overlay', 'the overlay needs pyobjc. sent a notification instead.');
 });
 
 function toast(text, kind = '') {

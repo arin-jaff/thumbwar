@@ -6,7 +6,8 @@ import tempfile
 import unittest
 
 from thumbwar.gh import _checks
-from thumbwar.sessions import Session, compute_state, feed_status
+from thumbwar.overlay import _applescript_string
+from thumbwar.sessions import Session, compute_state, feed_status, tmux_name
 
 # claude paints with cursor moves instead of spaces. real capture shape.
 WORKING_CHUNK = b"\x1b[38;5;214m\xe2\x9c\xbb\x1b[0m Brewing\x1b[8C(\x1b[1mesc\x1b[0m to interrupt)"
@@ -61,7 +62,37 @@ class ChecksRollup(unittest.TestCase):
         self.assertEqual(_checks(None), {"pass": 0, "fail": 0, "pending": 0})
 
 
+class TmuxNaming(unittest.TestCase):
+    def test_kill_can_reproduce_the_spawn_name(self):
+        # spawn and kill must agree byte for byte, truncation included
+        long_name = "a-repo-with-an-extremely-long-directory-name-indeed"
+        self.assertEqual(tmux_name("s3", long_name), f"tw-s3-{long_name}"[:40])
+        self.assertLessEqual(len(tmux_name("s3", long_name)), 40)
+
+
+class AppleScriptQuoting(unittest.TestCase):
+    def test_quotes_and_backslashes_escaped(self):
+        self.assertEqual(_applescript_string('say "hi"'), '"say \\"hi\\""')
+        self.assertEqual(_applescript_string("back\\slash"), '"back\\\\slash"')
+
+
 class Settings(unittest.TestCase):
+    def test_wrong_types_fall_back_to_defaults(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump({"countdown_seconds": "three", "rumble": "yes",
+                       "auto_away_after": 90}, f)
+        os.environ["THUMBWAR_SETTINGS"] = f.name
+        try:
+            import importlib
+            from thumbwar import settings as s
+            importlib.reload(s)
+            data = s.load()
+            self.assertEqual(data["countdown_seconds"], 3)   # string rejected
+            self.assertTrue(data["rumble"])                  # non bool rejected
+            self.assertEqual(data["auto_away_after"], 90)    # good value kept
+        finally:
+            os.environ.pop("THUMBWAR_SETTINGS", None)
+
     def test_merge_ignores_unknown_and_survives_junk(self):
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
             json.dump({"rumble": False, "hacker": True}, f)

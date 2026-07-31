@@ -43,10 +43,12 @@ class PushToTalk:
     def release(self) -> bool:
         if not self._synth or not self.down:
             return False
-        self.down = False
         try:
             self._synth.up(self.combo)
+            self.down = False
             return True
         except Exception as exc:
+            # stay marked down so the next release retries rather than
+            # leaving cmd and friends held down across the whole system
             self.error = f"key synth failed: {exc}"
             return False

@@ -34,16 +34,19 @@ export function addSession(info) {
   el.querySelector('.card-name').textContent = info.name;
   el.querySelector('.card-cwd').textContent = info.cwd.replace(/^\/Users\/[^/]+/, '~');
   el.querySelector('.card-x').addEventListener('click', () => send({ t: 'kill', id: info.id }));
-  el.addEventListener('mousedown', () => {
+  el.addEventListener('mousedown', (e) => {
     const i = S.order.indexOf(info.id);
     if (i >= 0 && i !== S.active) { S.active = i; emit('deck:nav'); }
+    // clicking into the terminal focuses xterm, so make the ui agree
+    if (e.target.closest('.term-host')) emit('typing:enter');
   });
   deckEl.appendChild(el);
 
   const sess = { ...info, el, term: null };
   S.sessions.set(info.id, sess);
   S.order.push(info.id);
-  S.active = S.order.length - 1;
+  // a new card takes the thumb unless you are mid sentence in another one
+  if (!S.typing) S.active = S.order.length - 1;
   sess.term = new TermView(info.id, el.querySelector('.term-host'));
   refresh();
   requestAnimationFrame(() => sess.term.refit());
@@ -52,12 +55,18 @@ export function addSession(info) {
 export function removeSession(id) {
   const sess = S.sessions.get(id);
   if (!sess) return;
+  const i = S.order.indexOf(id);
+  const wasActive = i === S.active;
   sess.term.dispose();
   sess.el.remove();
   S.sessions.delete(id);
-  const i = S.order.indexOf(id);
   S.order.splice(i, 1);
+  // keep the same card under the thumb when one before it exits
+  if (i < S.active) S.active -= 1;
   if (S.active >= S.order.length) S.active = Math.max(0, S.order.length - 1);
+  // never let keystrokes land in whichever agent slid into the empty slot
+  if (wasActive && S.typing) emit('typing:exit');
+  floatPos = S.active;
   refresh();
 }
 
@@ -95,21 +104,43 @@ export function refresh() {
 
 // -- transforms -----------------------------------------------------------
 
+const GAP = 22;
+
+// tile every card into the stage, centering whatever is left on the last row
+function gridPlan(n) {
+  if (!n) return null;
+  const first = S.sessions.get(S.order[0]).el;
+  // offset sizes, not client rects: the cards already carry a scale transform
+  const cardW = first.offsetWidth, cardH = first.offsetHeight;
+  const cols = Math.ceil(Math.sqrt(n));
+  const rows = Math.ceil(n / cols);
+  const cellW = (stageEl.clientWidth - GAP * (cols + 1)) / cols;
+  const cellH = (stageEl.clientHeight - GAP * (rows + 1)) / rows;
+  const scale = Math.min(cellW / cardW, cellH / cardH, 1);
+  const card = { width: cardW, height: cardH };
+  return (i) => {
+    const r = Math.floor(i / cols);
+    const inRow = Math.min(cols, n - r * cols);
+    const c = i - r * cols;
+    return {
+      x: (c - (inRow - 1) / 2) * (card.width * scale + GAP),
+      y: (r - (rows - 1) / 2) * (card.height * scale + GAP),
+      scale,
+    };
+  };
+}
+
 function layout() {
   const n = S.order.length;
+  const g = S.grid ? gridPlan(n) : null;
   S.order.forEach((id, i) => {
     const s = S.sessions.get(id);
     const off = i - floatPos;
     const el = s.el;
     el.classList.toggle('is-active', i === S.active);
-    if (S.grid) {
-      const cols = Math.ceil(Math.sqrt(n));
-      const rows = Math.ceil(n / cols);
-      const c = i % cols, r = Math.floor(i / cols);
-      const sc = Math.min(0.94 / cols, 0.9 / rows);
-      const x = (c - (cols - 1) / 2) * (100 / cols);
-      const y = (r - (rows - 1) / 2) * (86 / rows);
-      el.style.transform = `translate(${x}vw, ${y}vh) scale(${sc})`;
+    if (g) {
+      const { x, y, scale } = g(i);
+      el.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
       el.style.zIndex = i === S.active ? 40 : 20;
       el.style.opacity = 1;
     } else if (S.zoom && i === S.active) {

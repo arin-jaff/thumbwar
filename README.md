@@ -19,6 +19,8 @@ built on [ornn-pad](https://github.com/arin-jaff/ornn-pad), a raw hid driver
 for the 8bitdo ultimate 2 wireless. any standard gamepad works too through the
 browser gamepad api, and everything has a keyboard path.
 
+![the deck](docs/deck.png)
+
 ## quick start
 
 ```bash
@@ -46,7 +48,7 @@ and die with the server.
 | x | the command wheel |
 | y | expand output, ctrl o |
 | lb / rb | reject / accept the hunk claude is asking about |
-| dpad | hop cards. while typing it becomes arrow keys, so claude's own menus are fully driveable |
+| dpad | left and right hop cards, up and down open the wheel. while typing the whole dpad becomes arrow keys, so claude's own menus are fully driveable |
 | l3 hold | push to talk, wired to wispr flow |
 | r3 | recenter. with l3 held it interrupts every agent |
 | start / select | new agent / settings |
@@ -54,9 +56,15 @@ and die with the server.
 | guide | the controller map |
 | paddles | quick slash commands, yours to configure |
 
+press guide (or `?`) for the whole map, any time.
+
+![the controller map](docs/map.png)
+
 the wheel rolls with the dpad through every claude code slash command and
 shortcut, grouped into flow, craft, model, rig and keys. rumble gives you a
 detent per notch, like a good scroll wheel should.
+
+![the wheel](docs/wheel.png)
 
 in the pr bay the right trigger is analog: squeeze it and a ring fills until
 the merge lands, with the rumble ramping under your finger. letting go backs
@@ -72,6 +80,8 @@ anywhere in macos, over full screen apps too:
   ✻  your agents are done          ( 3 )
      come see what they made
 ```
+
+![the disclaimer](docs/done.png)
 
 it counts down, 3 seconds by default, then pulls thumbwar back to the front.
 set it to 5, 10, 30 or off in settings, make it appear even when not away,
@@ -102,7 +112,20 @@ the terminal that runs thumbwar.
 - optional: the 8bitdo ultimate 2 wireless in d-input mode, via ornn-pad
 - optional: wispr flow for voice
 
-the server binds 127.0.0.1 only. it types into real shells, so keep it there.
+the server binds 127.0.0.1 only and rejects websocket handshakes from any
+other origin, because a page you visit can otherwise open a loopback socket.
+it types into real shells, so keep both of those in place.
+
+## tests
+
+```bash
+python -m unittest discover -s tests
+```
+
+they cover the parts that are easy to get quietly wrong: status detection
+against real claude output (which paints with cursor moves, so stripped text
+has no spaces in it), the tmux naming that spawn and kill must agree on,
+applescript quoting, and settings that survive a hand edited json file.
 
 ## layout
 

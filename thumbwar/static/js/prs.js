@@ -32,8 +32,9 @@ export function keys(name) {
       break;
     }
     case 'north': {
+      // a pad press carries no browser user activation, so let the os open it
       const pr = S.prs.list[S.prs.sel];
-      if (pr && pr.url) window.open(pr.url, '_blank');
+      if (pr && pr.url) { send({ t: 'open_url', url: pr.url }); rumble('tick'); }
       break;
     }
     case 'r1': open(); rumble('tick'); break;

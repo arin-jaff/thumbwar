@@ -29,6 +29,7 @@ export function setTyping(v) {
 }
 
 on('typing:exit', () => setTyping(false));
+on('typing:enter', () => setTyping(true));
 
 function write(text) {
   const s = activeSession();
@@ -92,6 +93,8 @@ function onDown(name) {
   }
 
   if (S.mode === 'wheel') return wheelKeys(name);
+  // b closes any panel, which is what every panel note promises
+  if (name === 'east' && S.mode !== 'deck') { setMode('deck'); return; }
   if (S.mode === 'prs') return prs.keys(name);
   if (S.mode === 'spawn') return spawn.keys(name);
   if (S.mode === 'settings') return settingsUI.keys(name);
@@ -164,6 +167,13 @@ function wheelKeys(name) {
   }
 }
 
+// a pad going away mid press must not leave a repeat running forever
+export function releaseAll() {
+  for (const key of [...repeaters.keys()]) stopRepeat(key.replace(/:delay$/, ''));
+  gpState.buttons.fill(false);
+  gpState.dig = {};
+}
+
 // -- dpad auto repeat -----------------------------------------------------
 
 const repeaters = new Map();
@@ -210,6 +220,7 @@ on('ws:pad', ({ ev }) => {
     rumble('connect');
   } else if (ev.type === 'disconnected') {
     S.pad.source = S.pad.available ? 'waiting' : 'none';
+    releaseAll();
     emit('padchange');
   }
 });
@@ -223,7 +234,10 @@ const gpState = { buttons: new Array(17).fill(false), dig: {} };
 function pollGamepad() {
   if (S.pad.available) return;      // backend pad wins
   const gp = navigator.getGamepads ? navigator.getGamepads()[0] : null;
-  if (!gp) return;
+  if (!gp) {
+    if (S.pad.source === 'gamepad') { S.pad.source = 'none'; releaseAll(); emit('padchange'); }
+    return;
+  }
   if (S.pad.source !== 'gamepad') { S.pad.source = 'gamepad'; emit('padchange'); }
 
   const dz = S.settings.deadzone ?? 0.12;

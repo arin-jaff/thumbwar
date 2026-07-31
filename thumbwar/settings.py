@@ -33,15 +33,30 @@ DEFAULTS: Dict[str, Any] = {
 
 
 def load() -> Dict[str, Any]:
+    """defaults, with known keys of the right shape merged over them.
+
+    a hand edited file is expected. a wrong type in it would otherwise wedge
+    a background loop at runtime, so type mismatches fall back to the default.
+    """
     data: Dict[str, Any] = dict(DEFAULTS)
     try:
         on_disk = json.loads(PATH.read_text())
-        if isinstance(on_disk, dict):
-            for k, v in on_disk.items():
-                if k in DEFAULTS:
-                    data[k] = v
     except (OSError, ValueError):
-        pass
+        return data
+    if not isinstance(on_disk, dict):
+        return data
+    for key, value in on_disk.items():
+        if key not in DEFAULTS:
+            continue
+        want = DEFAULTS[key]
+        if isinstance(want, bool):
+            ok = isinstance(value, bool)
+        elif isinstance(want, (int, float)):
+            ok = isinstance(value, (int, float)) and not isinstance(value, bool)
+        else:
+            ok = isinstance(value, type(want))
+        if ok:
+            data[key] = value
     return data
 
 

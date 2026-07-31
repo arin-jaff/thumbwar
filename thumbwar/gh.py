@@ -10,14 +10,18 @@ _FIELDS = ("number,title,headRefName,baseRefName,author,isDraft,"
            "mergeable,reviewDecision,statusCheckRollup,additions,deletions,url")
 
 
-async def _run(args: List[str], cwd: str) -> tuple[int, str, str]:
+async def _run(args: List[str], cwd: str, timeout: float = 25.0) -> tuple[int, str, str]:
     try:
         proc = await asyncio.create_subprocess_exec(
-            "gh", *args, cwd=cwd,
+            "gh", *args, cwd=cwd, stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
     except OSError as exc:
         return 127, "", f"gh not found: {exc}"
-    out, err = await proc.communicate()
+    try:
+        out, err = await asyncio.wait_for(proc.communicate(), timeout)
+    except asyncio.TimeoutError:
+        proc.kill()
+        return 124, "", "gh took too long. is it authenticated? try gh auth status"
     return proc.returncode or 0, out.decode(), err.decode()
 
 

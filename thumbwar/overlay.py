@@ -31,11 +31,18 @@ RETURN_AT_ZERO = 0
 DISMISSED = 2
 
 
+def _applescript_string(s: str) -> str:
+    """quote a python string as an applescript literal. session names come
+    from directory names, so they can contain quotes and backslashes."""
+    return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
 def _notify_fallback(title: str, body: str) -> None:
-    script = f'display notification "{body}" with title "{title}"'
+    script = (f"display notification {_applescript_string(body)} "
+              f"with title {_applescript_string(title)}")
     try:
         subprocess.run(["osascript", "-e", script], timeout=5, capture_output=True)
-    except OSError:
+    except (OSError, subprocess.TimeoutExpired):
         pass
 
 
@@ -118,7 +125,7 @@ def main() -> None:
             draw_text(frame, 30, 40, 34, ORANGE, mono=True)
             draw_text(self.title, 78, 40, 21, FOAM, bold=True)
             draw_text(self.body, 78, 74, 13, MINT)
-            hint = "click to dismiss" + ("" if self.seconds > 0 else " . return to jump back")
+            hint = "click to dismiss" + ("" if self.seconds > 0 else " · return to jump back")
             draw_text(hint, 78, 108, 11, FOAM, alpha=0.55)
 
             if self.seconds > 0:

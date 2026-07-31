@@ -6,7 +6,8 @@ let sock = null;
 let retry = 500;
 
 export function connect() {
-  sock = new WebSocket(`ws://${location.host}/ws`);
+  const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+  sock = new WebSocket(`${scheme}://${location.host}/ws`);
   sock.onopen = () => {
     S.connected = true;
     retry = 500;

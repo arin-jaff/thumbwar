@@ -77,10 +77,16 @@ export function render() {
       d.innerHTML = `${label}<span class="set-toggle ${v ? 'on' : ''}"></span>`;
       d.querySelector('.set-toggle').addEventListener('click', () => adjust(row, 1));
     } else if (row.kind === 'cycle') {
-      d.innerHTML = `${label}<span class="set-value">${row.fmt(v)}</span>`;
+      d.innerHTML = `${label}<span class="set-value"></span>`;
+      d.querySelector('.set-value').textContent = row.fmt(v);
     } else if (row.kind === 'slider') {
-      d.innerHTML = `${label}<input class="set-slider" type="range" min="${row.min}" max="${row.max}" step="${row.step}" value="${v}"><span class="set-value">${row.fmt(v)}</span>`;
-      d.querySelector('input').addEventListener('input', (e) => {
+      d.innerHTML = `${label}<input class="set-slider" type="range" min="${row.min}" max="${row.max}" step="${row.step}"><span class="set-value"></span>`;
+      const slider = d.querySelector('input');
+      const readout = d.querySelector('.set-value');
+      slider.value = v;
+      readout.textContent = row.fmt(v);
+      slider.addEventListener('input', (e) => {
+        readout.textContent = row.fmt(+e.target.value);
         send({ t: 'set', key: row.key, value: +e.target.value });
       });
     } else if (row.kind === 'text') {
@@ -100,7 +106,10 @@ export function render() {
 
 on('ws:settings', (m) => {
   S.settings = m.settings;
-  if (S.mode === 'settings') render();
+  // never redraw under a live slider drag or a half typed combo
+  const busy = listEl.contains(document.activeElement)
+    || listEl.querySelector('.set-slider:active');
+  if (S.mode === 'settings' && !busy) render();
 });
 
 on('mode', ({ mode }) => { if (mode === 'settings') render(); });

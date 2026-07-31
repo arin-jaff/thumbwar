@@ -35,9 +35,12 @@ function flipTab(d) {
   rumble('thock');
 }
 
+//: the panel shows this many rows, so selection must not walk past them
+const VISIBLE = 12;
+
 function currentRows() {
-  if (S.spawnUI.tab === 'dirs') return S.spawnUI.dirs;
-  if (S.spawnUI.tab === 'tmux') return S.spawnUI.tmux;
+  if (S.spawnUI.tab === 'dirs') return S.spawnUI.dirs.slice(0, VISIBLE);
+  if (S.spawnUI.tab === 'tmux') return S.spawnUI.tmux.slice(0, VISIBLE);
   return [
     { shell: true, name: 'plain shell at home', cmd: 'exec $SHELL', cwd: '~' },
     { shell: true, name: 'claude at home', cwd: '~' },
@@ -69,7 +72,7 @@ function render() {
     listEl.innerHTML = `<div class="spawn-empty">${label}</div>`;
     return;
   }
-  rows.slice(0, 12).forEach((row, i) => {
+  rows.forEach((row, i) => {
     const d = document.createElement('div');
     d.className = 'spawn-row' + (i === S.spawnUI.sel ? ' sel' : '');
     const sub = row.path || (row.windows ? `${row.windows} windows` : row.cmd || 'claude');

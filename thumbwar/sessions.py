@@ -74,6 +74,12 @@ def feed_status(sess: "Session", chunk: bytes, now: float) -> bool:
     return fresh_burst
 
 
+def tmux_name(sid: str, name: str) -> str:
+    """the tmux session name for one of our sessions. one definition only,
+    because kill has to reproduce it byte for byte."""
+    return f"tw-{sid}-{name}"[:40]
+
+
 def compute_state(sess: "Session", now: float) -> str:
     if sess.proc and sess.proc.poll() is not None:
         return "dead"
@@ -99,6 +105,7 @@ class Session:
     adopted: bool = False
     created: float = field(default_factory=time.time)
     ring: bytearray = field(default_factory=bytearray)
+    pending: bytearray = field(default_factory=bytearray)
     tail: str = ""                 # recent plain text, for prompt detection
     busy_seen: float = 0.0
     work_started: float = 0.0
@@ -153,9 +160,10 @@ class SessionManager:
         if adopt_tmux and tmux:
             argv = [tmux, "attach-session", "-t", adopt_tmux]
         elif tmux:
-            # -A attaches if a session of this name already exists
-            argv = [tmux, "-L", "thumbwar", "new-session", "-A",
-                    "-s", f"tw-{sid}-{name}"[:40], cmd]
+            # -A attaches if a session of this name already exists. default
+            # socket on purpose, so `tmux ls` in a normal terminal finds these
+            # and list_tmux can offer survivors back for adoption.
+            argv = [tmux, "new-session", "-A", "-s", tmux_name(sid, name), cmd]
         else:
             # a login shell so `claude` resolves from the user's real PATH
             shell = os.environ.get("SHELL", "/bin/zsh")
@@ -239,9 +247,28 @@ class SessionManager:
             return
         if sess.state == "needs_you":
             sess.tail = ""            # the human just answered the prompt
+        # the master is non blocking, so a big paste can write short. buffer
+        # the tail and drain it when the pty is writable again.
+        sess.pending.extend(data)
+        self._drain(sess)
+
+    def _drain(self, sess: Session) -> None:
+        if sess.fd < 0 or not sess.pending:
+            return
         try:
-            os.write(sess.fd, data)
+            n = os.write(sess.fd, sess.pending)
+        except BlockingIOError:
+            n = 0
         except OSError:
+            sess.pending.clear()
+            return
+        del sess.pending[:n]
+        try:
+            if sess.pending:
+                self.loop.add_writer(sess.fd, self._drain, sess)
+            else:
+                self.loop.remove_writer(sess.fd)
+        except (ValueError, OSError):
             pass
 
     def resize(self, sid: str, cols: int, rows: int) -> None:
@@ -266,24 +293,43 @@ class SessionManager:
 
     def kill(self, sid: str) -> None:
         sess = self.sessions.get(sid)
-        if sess:
-            self._teardown(sess, kill=True)
+        if not sess:
+            return
+        # under tmux the child is only the client. sighup would detach it and
+        # leave claude running headless, so end the tmux session by name.
+        # not in _teardown: shutdown tears down too, and survival is the point.
+        tmux = self.tmux_path()
+        if tmux and not sess.adopted:
+            try:
+                subprocess.run([tmux, "kill-session", "-t",
+                                "=" + tmux_name(sess.id, sess.name)],
+                               capture_output=True, timeout=5)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        self._teardown(sess, kill=True)
 
     def _teardown(self, sess: Session, *, kill: bool) -> None:
         if sess.fd >= 0:
-            try:
-                self.loop.remove_reader(sess.fd)
-            except (ValueError, OSError):
-                pass
+            for remove in (self.loop.remove_reader, self.loop.remove_writer):
+                try:
+                    remove(sess.fd)
+                except (ValueError, OSError):
+                    pass
             try:
                 os.close(sess.fd)
             except OSError:
                 pass
             sess.fd = -1
+        sess.pending.clear()
         if kill and sess.proc and sess.proc.poll() is None:
             try:
                 os.killpg(os.getpgid(sess.proc.pid), signal.SIGHUP)
             except (OSError, ProcessLookupError):
+                pass
+        if sess.proc:
+            try:
+                sess.proc.wait(timeout=0.2)     # reap, do not leave a zombie
+            except (subprocess.TimeoutExpired, OSError):
                 pass
         sess.state = "dead"
         self.sessions.pop(sess.id, None)
