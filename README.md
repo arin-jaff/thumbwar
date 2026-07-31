@@ -117,3 +117,7 @@ thumbwar/
   settings.py    one json file
   static/        the deck, the wheel, the bay. no build step, vendored deps
 ```
+
+## faq
+
+why the name? because you fight your agents with your thumbs.
