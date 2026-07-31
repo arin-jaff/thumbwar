@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>thumbwar</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext x='32' y='46' font-size='44' text-anchor='middle' fill='%23f0824f'%3E%E2%9C%BB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/vendor/xterm.css">
+<link rel="stylesheet" href="/static/css/thumbwar.css">
+</head>
+<body>
+
+<div id="bg" aria-hidden="true">
+  <div class="blob blob-mint"></div>
+  <div class="blob blob-orange"></div>
+</div>
+
+<header id="topbar">
+  <div class="brand">
+    <span class="spark">✻</span>
+    <span class="word">thumbwar</span>
+    <span class="tag">vibe coding, gamified</span>
+  </div>
+  <nav id="modetabs">
+    <button data-goto="deck" class="on">deck</button>
+    <button data-goto="prs">prs</button>
+    <button data-goto="wheel">wheel</button>
+    <button data-goto="settings">settings</button>
+  </nav>
+  <div class="chips">
+    <span id="pad-chip" class="chip">no pad</span>
+    <span id="battery-chip" class="chip hidden"></span>
+    <span id="conn-chip" class="chip">connecting.</span>
+  </div>
+</header>
+
+<main id="stage">
+  <div id="deck"></div>
+  <div id="empty-deck" class="hidden">
+    <div class="empty-spark">✻</div>
+    <h1>no agents yet</h1>
+    <p>press <span class="btn-chip chip-start">start</span> or hit n to spawn your first claude</p>
+  </div>
+  <div id="dots"></div>
+</main>
+
+<aside id="wheel" class="panel hidden" aria-label="command wheel">
+  <div class="panel-title"><span class="spark">✻</span> the wheel</div>
+  <div id="wheel-groups"></div>
+  <div id="wheel-window">
+    <div id="wheel-items"></div>
+    <div class="wheel-caret">❯</div>
+  </div>
+  <div class="panel-note">dpad rolls · a sends · b backs out</div>
+</aside>
+
+<aside id="prs" class="panel hidden" aria-label="pull requests">
+  <div class="panel-title"><span class="spark">⏺</span> pr bay <span id="prs-repo" class="panel-sub"></span></div>
+  <div id="prs-list"></div>
+  <div class="panel-note">dpad picks · hold r2 to merge · a checks out · r1 refreshes</div>
+</aside>
+
+<aside id="spawn" class="panel hidden" aria-label="new session">
+  <div class="panel-title"><span class="spark">✢</span> new agent</div>
+  <div id="spawn-tabs">
+    <button data-tab="dirs" class="on">repos</button>
+    <button data-tab="tmux">adopt tmux</button>
+    <button data-tab="shell">shell</button>
+  </div>
+  <div id="spawn-list"></div>
+  <div class="panel-note">dpad picks · a spawns · x flips tabs · b backs out</div>
+</aside>
+
+<aside id="settings" class="panel hidden" aria-label="settings">
+  <div class="panel-title"><span class="spark">✽</span> settings</div>
+  <div id="settings-list"></div>
+  <div class="panel-note">dpad picks · left and right tune · a toggles</div>
+</aside>
+
+<div id="help" class="scrim hidden">
+  <div class="help-card">
+    <pre id="help-art" class="wordmark"></pre>
+    <div id="help-cols"></div>
+    <div class="panel-note">press anything to close</div>
+  </div>
+</div>
+
+<div id="done" class="scrim hidden">
+  <div class="done-card">
+    <div class="done-spark">✻</div>
+    <h1>your agents are done</h1>
+    <p id="done-names"></p>
+    <div id="done-ring"><span id="done-num"></span></div>
+    <button id="done-dismiss" class="bubble-btn">dismiss</button>
+  </div>
+</div>
+
+<div id="away" class="scrim hidden">
+  <div class="away-inner">
+    <div id="away-spinner">✻</div>
+    <h1>agents are cooking</h1>
+    <p>go live your life. the disclaimer will find you.</p>
+    <div id="away-dots"></div>
+    <div class="panel-note">b brings you back</div>
+  </div>
+</div>
+
+<footer id="hints"></footer>
+<div id="toasts"></div>
+
+<script src="/static/vendor/xterm.js"></script>
+<script src="/static/vendor/addon-fit.js"></script>
+<script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

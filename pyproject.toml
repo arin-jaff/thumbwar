@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "thumbwar"
+version = "0.1.0"
+description = "vibe coding, gamified. a controller cockpit for parallel claude code agents."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = ["aiohttp>=3.9"]
+
+[project.optional-dependencies]
+# the full couch experience: raw hid pad input + rumble + push to talk + system overlay
+pad = [
+    "ornnpad @ git+https://github.com/arin-jaff/ornn-pad",
+    "hidapi",
+    "pyobjc-framework-Quartz",
+    "pyobjc-framework-Cocoa",
+]
+
+[project.scripts]
+thumbwar = "thumbwar.__main__:main"
+
+[tool.setuptools]
+packages = ["thumbwar"]
+
+[tool.setuptools.package-data]
+thumbwar = ["static/**/*"]
