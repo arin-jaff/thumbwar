@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import subprocess
+import sys
 
 from aiohttp import web
 
@@ -24,6 +25,11 @@ BANNER = rf"""
 
 
 def main() -> None:
+    if len(sys.argv) > 1 and sys.argv[1] == "daemon":
+        from . import daemon
+        daemon.cli(sys.argv[2:])
+        return
+
     ap = argparse.ArgumentParser(prog="thumbwar",
                                  description="a controller cockpit for parallel claude code agents")
     ap.add_argument("--host", default="127.0.0.1",
