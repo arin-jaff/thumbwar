@@ -61,6 +61,7 @@ export function addSession(info) {
 export function removeSession(id) {
   const sess = S.sessions.get(id);
   if (!sess) return;
+  emit('deck:gone', { name: sess.name });
   const i = S.order.indexOf(id);
   const wasActive = i === S.active;
   sess.term.dispose();
@@ -114,6 +115,8 @@ export function refresh() {
     const d = document.createElement('span');
     d.className = 'dot ' + s.state + (i === S.active ? ' on' : '');
     dotsEl.appendChild(d);
+    // grid badges share the 1-9 jump keys
+    if (i < 9) s.el.dataset.n = i + 1; else delete s.el.dataset.n;
   });
   layout();
 }

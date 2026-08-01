@@ -3,6 +3,7 @@
 import { S, on, activeSession } from './state.js';
 import { send } from './ws.js';
 import { rumble } from './rumble.js';
+import { confetti } from './confetti.js';
 
 const listEl = document.getElementById('prs-list');
 const repoEl = document.getElementById('prs-repo');
@@ -114,10 +115,11 @@ on('ws:prs', (m) => {
   render();
 });
 
-on('ws:pr_merged', () => {
+on('ws:pr_merged', (m) => {
   merging = false;
   S.prs.holding = 0;
   rumble('still');
+  if (m.ok) confetti();
   if (S.mode === 'prs') open();
 });
 

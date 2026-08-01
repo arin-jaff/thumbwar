@@ -5,6 +5,7 @@ import { send } from './ws.js';
 import { rumble } from './rumble.js';
 import { setMode } from './modes.js';
 import { SPINNER } from './art.js';
+import { confetti } from './confetti.js';
 
 const namesEl = document.getElementById('done-names');
 const ringEl = document.getElementById('done-ring');
@@ -52,6 +53,7 @@ on('ws:alldone', ({ names }) => {
     ? S.done.names.join(', ') + ' wrapped up'
     : 'everything wrapped up';
   setMode('done');
+  confetti();
   startCountdown();
 });
 

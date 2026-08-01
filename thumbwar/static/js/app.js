@@ -94,6 +94,33 @@ on('ws:needs_you', ({ name }) => {
   if (!S.away) toast(`${name} needs you · r3 or tab jumps there`, 'info');
 });
 
+on('deck:gone', ({ name }) => toast(`${name} ended`));
+
+// -- background presence: the tab tells you what is happening --------------
+
+const favicon = document.getElementById('favicon');
+const ICON = (glyph, color) =>
+  `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext x='32' y='46' font-size='44' text-anchor='middle' fill='%23${color}'%3E${glyph}%3C/text%3E%3C/svg%3E`;
+const ICONS = {
+  plain: ICON('%E2%9C%BB', 'f0824f'),      // ✻ orange
+  needs: ICON('%E2%9D%AF', 'e8a33d'),      // ❯ marigold
+  done: ICON('%E2%9C%BB', '14a575'),       // ✻ mint
+};
+
+setInterval(() => {
+  let cooking = 0, needs = 0, finished = 0;
+  for (const s of S.sessions.values()) {
+    if (s.state === 'working') cooking += 1;
+    else if (s.state === 'needs_you') needs += 1;
+    else if (s.finished) finished += 1;
+  }
+  document.title = needs ? `❯ ${needs} need${needs > 1 ? '' : 's'} you · thumbwar`
+    : cooking ? `✻ ${cooking} cooking · thumbwar`
+    : finished ? `✻ done · thumbwar` : 'thumbwar';
+  const want = needs ? ICONS.needs : finished && !cooking ? ICONS.done : ICONS.plain;
+  if (favicon.href !== want) favicon.href = want;
+}, 1000);
+
 const warned = new Set();
 function warnOnce(key, text) {
   if (!text || warned.has(key)) return;

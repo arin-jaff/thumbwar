@@ -459,6 +459,20 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .chip-y { background: var(--marigold); color: var(--ink); }
 .chip-lr, .chip-start, .chip-sel, .chip-stick, .chip-dpad { background: var(--ink); color: var(--spearmint); }
 
+/* confetti canvas rides above everything and takes no input */
+.confetti { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
+
+/* grid mode: jump numbers, same keys as 1-9 */
+#stage.grid .card[data-n]::after {
+  content: attr(data-n);
+  position: absolute; top: -13px; left: -13px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--ink); color: var(--spearmint);
+  font: 700 14px var(--display);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--pop-soft);
+}
+
 /* ---- toasts ---- */
 
 #toasts {
