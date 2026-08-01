@@ -41,7 +41,7 @@ and die with the server.
 | input | in the deck |
 |---|---|
 | right stick | flip through your agents |
-| left stick | scroll the terminal, l2 for turbo |
+| left stick | scroll the terminal, l2 for turbo. flick it sideways to hop cards, and in any panel it drives the menu like a game menu, auto repeat included |
 | stick up / down | zoom one card, or the grid of all of them |
 | a | start typing into the agent, then a sends enter |
 | b | back. hold it to interrupt the agent |
@@ -50,21 +50,35 @@ and die with the server.
 | lb / rb | reject / accept the hunk claude is asking about |
 | dpad | left and right hop cards, up and down open the wheel. while typing the whole dpad becomes arrow keys, so claude's own menus are fully driveable |
 | l3 hold | push to talk, wired to wispr flow |
-| r3 | recenter. with l3 held it interrupts every agent |
+| r3 | jump to the next agent that needs you, else recenter. with l3 held it interrupts every agent. `tab` on the keyboard |
 | start / select | new agent / settings |
 | share | away mode, aka the dismiss button |
 | guide | the controller map |
-| paddles | quick slash commands, yours to configure |
+| paddles | quick slash commands, editable in settings |
 
-press guide (or `?`) for the whole map, any time.
+press guide (or `?`) for the controller map: a live diagram that lights up
+under your thumbs as you press, with the stick caps following the real axes
+and the paddle labels reading your actual quick slots. it stays up while you
+mash; b puts it away.
 
 ![the controller map](docs/map.png)
 
-the wheel rolls with the dpad through every claude code slash command and
-shortcut, grouped into flow, craft, model, rig and keys. rumble gives you a
-detent per notch, like a good scroll wheel should.
+the wheel is a real pie now. slices around a hub, grouped into flow, craft,
+model, rig, keys and agent. point the right stick at a slice like a weapon
+wheel, or roll around the rim with the dpad, lb and rb flip groups, a fires,
+number keys pick a slice outright. rumble gives you a detent per notch, like
+a good scroll wheel should.
+
+the agent group is the meta one: duplicate an agent into a twin on the same
+repo, restart it fresh, kill it, or flip on broadcast, which mirrors every
+keystroke into every agent at once. one prompt, three claudes racing. the
+topbar chip pulses while broadcast is live so you cannot forget it is on.
 
 ![the wheel](docs/wheel.png)
+
+every card also reads the room: a cooking timer while the agent works, the
+git branch of its repo with a dirty count that goes orange, and a little
+sparkline of output rate so you can spot the busy one from across the grid.
 
 in the pr bay the right trigger is analog: squeeze it and a ring fills until
 the merge lands, with the rumble ramping under your finger. letting go backs
@@ -88,6 +102,10 @@ set it to 5, 10, 30 or off in settings, make it appear even when not away,
 or let auto away slip you out on its own. dismissing it is one click, or one
 press of anything.
 
+the card also comes for you when a single agent stops to ask permission
+while you are away: "an agent needs you". that one is `overlay_needs_you`
+in settings, on by default, because a stuck agent is a wasted agent.
+
 ## rumble, tastefully
 
 short bursts only. a tick per card as the carousel settles, a detent per
@@ -95,6 +113,29 @@ wheel notch, a bright double for accept, a low thud for reject, a triple
 pulse when everyone finishes, a heartbeat under the countdown, a crescendo
 under a merge squeeze. all of it scales with one intensity slider and one
 off switch.
+
+every haptic cue also has an audio twin: a tiny synthesized sound pack
+(webaudio, no assets) that plays the same language, ticks, detents, a
+mint chime when everyone finishes, a doorbell when an agent needs you.
+own toggle, own volume slider, works even with no pad at all.
+
+## themes
+
+four skins on the same bones: mint (the original), peach, lavender, and
+midnight, a proper dark mode that inverts the whole cockpit for night
+shifts. cycle them in settings, they apply live.
+
+## running in the background
+
+```bash
+thumbwar daemon install    # start at login, restart on crash, no browser tab
+thumbwar daemon status
+thumbwar daemon uninstall
+```
+
+one launchd agent, logs in `~/Library/Logs/thumbwar.log`. the deck is then
+always at your port, and the disclaimer can find you even when you never
+started anything by hand.
 
 ## wispr push to talk
 
@@ -125,20 +166,22 @@ python -m unittest discover -s tests
 they cover the parts that are easy to get quietly wrong: status detection
 against real claude output (which paints with cursor moves, so stripped text
 has no spaces in it), the tmux naming that spawn and kill must agree on,
-applescript quoting, and settings that survive a hand edited json file.
+git status parsing for the branch chips, the launchd plist, applescript
+quoting, and settings that survive a hand edited json file.
 
 ## layout
 
 ```
 thumbwar/
   server.py      the hub: http, one websocket, everything routed
-  sessions.py    ptys, tmux wrapping, status detection, the all done watcher
+  sessions.py    ptys, tmux wrapping, status detection, watchers, git poller
   pad.py         ornnpad bridge and the rumble pattern language
   gh.py          pr list / merge / checkout through the gh cli
   overlay.py     the floating countdown card, an appkit subprocess
   wispr.py       push to talk key synthesis
+  daemon.py      the launchd agent: install, uninstall, status
   settings.py    one json file
-  static/        the deck, the wheel, the bay. no build step, vendored deps
+  static/        the deck, the wheel, the map, the bay. no build step
 ```
 
 ## faq

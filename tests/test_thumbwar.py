@@ -2,12 +2,16 @@
 
 import json
 import os
+import plistlib
 import tempfile
+import time
 import unittest
 
+from thumbwar.daemon import LABEL, plist_bytes
 from thumbwar.gh import _checks
 from thumbwar.overlay import _applescript_string
-from thumbwar.sessions import Session, compute_state, feed_status, tmux_name
+from thumbwar.sessions import (Session, compute_state, feed_status,
+                               parse_git_status, tmux_name)
 
 # claude paints with cursor moves instead of spaces. real capture shape.
 WORKING_CHUNK = b"\x1b[38;5;214m\xe2\x9c\xbb\x1b[0m Brewing\x1b[8C(\x1b[1mesc\x1b[0m to interrupt)"
@@ -50,6 +54,51 @@ class StatusDetection(unittest.TestCase):
         self.assertEqual(s.bell_at, 100.0)
 
 
+class GitStatusParsing(unittest.TestCase):
+    def test_clean_branch(self):
+        self.assertEqual(parse_git_status("## main...origin/main\n"), ("main", 0))
+
+    def test_dirty_with_ahead_marker(self):
+        out = "## fix/wheel...origin/fix/wheel [ahead 2]\n M a.py\n?? b.py\n"
+        self.assertEqual(parse_git_status(out), ("fix/wheel", 2))
+
+    def test_local_only_branch(self):
+        self.assertEqual(parse_git_status("## solo\n M x\n"), ("solo", 1))
+
+    def test_detached(self):
+        self.assertEqual(parse_git_status("## HEAD (no branch)\n"), ("detached", 0))
+
+    def test_no_commits_yet(self):
+        self.assertEqual(parse_git_status("## No commits yet on main\n"), ("main", 0))
+
+    def test_not_a_repo(self):
+        self.assertEqual(parse_git_status(""), ("", 0))
+
+
+class WorkingFor(unittest.TestCase):
+    def test_working_session_reports_elapsed(self):
+        s = Session(id="t", name="t", cwd="/", cmd="x")
+        s.state = "working"
+        s.work_started = time.monotonic() - 5
+        d = s.to_dict()
+        self.assertGreaterEqual(d["working_for"], 4.5)
+
+    def test_ready_session_does_not(self):
+        s = Session(id="t", name="t", cwd="/", cmd="x")
+        self.assertNotIn("working_for", s.to_dict())
+
+
+class DaemonPlist(unittest.TestCase):
+    def test_round_trips_and_points_at_thumbwar(self):
+        d = plistlib.loads(plist_bytes(9999))
+        self.assertEqual(d["Label"], LABEL)
+        self.assertIn("thumbwar", d["ProgramArguments"])
+        self.assertIn("9999", d["ProgramArguments"])
+        self.assertIn("--no-open", d["ProgramArguments"])
+        # crash restarts, clean exit stays down
+        self.assertEqual(d["KeepAlive"], {"SuccessfulExit": False})
+
+
 class ChecksRollup(unittest.TestCase):
     def test_counts(self):
         rollup = [
@@ -77,10 +126,15 @@ class AppleScriptQuoting(unittest.TestCase):
 
 
 class Settings(unittest.TestCase):
+    def test_new_keys_have_defaults(self):
+        from thumbwar.settings import DEFAULTS
+        for key in ("overlay_needs_you", "sound", "sound_volume", "theme"):
+            self.assertIn(key, DEFAULTS)
+
     def test_wrong_types_fall_back_to_defaults(self):
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
             json.dump({"countdown_seconds": "three", "rumble": "yes",
-                       "auto_away_after": 90}, f)
+                       "auto_away_after": 90, "theme": 7}, f)
         os.environ["THUMBWAR_SETTINGS"] = f.name
         try:
             import importlib
@@ -90,6 +144,7 @@ class Settings(unittest.TestCase):
             self.assertEqual(data["countdown_seconds"], 3)   # string rejected
             self.assertTrue(data["rumble"])                  # non bool rejected
             self.assertEqual(data["auto_away_after"], 90)    # good value kept
+            self.assertEqual(data["theme"], "mint")          # int theme rejected
         finally:
             os.environ.pop("THUMBWAR_SETTINGS", None)
 
