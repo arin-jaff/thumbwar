@@ -25,8 +25,9 @@ DEFAULTS: Dict[str, Any] = {
     "sound": True,                 # synthesized ui sounds
     "sound_volume": 0.4,           # 0..1
     "theme": "mint",               # mint | peach | lavender | midnight
-    # wispr flow push to talk. set wispr's shortcut to the same combo.
-    "wispr_key": "ctrl+alt+cmd+space",
+    # wispr flow push to talk. "fn" presses the globe key (wispr's default
+    # hotkey); or use a combo like ctrl+alt+cmd+space and set wispr to match.
+    "wispr_key": "fn",
     # sessions
     "session_cmd": "claude",
     "roots": ["~/Documents/gh_repos"],

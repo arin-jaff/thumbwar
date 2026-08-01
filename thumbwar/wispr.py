@@ -1,15 +1,27 @@
 """push to talk for wispr flow.
 
 stick click down posts the configured hotkey down, release posts it up,
-so wispr's own push to talk shortcut does the recording. set wispr's
-shortcut to the same combo as the `wispr_key` setting.
+so wispr's own push to talk shortcut does the recording. two spellings:
 
-uses ornnpad's KeySynth (quartz), so it needs accessibility granted to
-the terminal that runs thumbwar. best effort by design: if synthesis is
-unavailable we say so once and stay quiet.
+  a combo like ``ctrl+alt+cmd+space``  synthesized via ornnpad's KeySynth
+  ``fn`` (or ``globe``)                wispr's default hotkey. not a real
+                                       keycode, so we post the flagsChanged
+                                       event the physical globe key makes.
+
+either way it needs accessibility granted to the terminal that runs
+thumbwar. best effort by design: if synthesis is unavailable we say so
+once and stay quiet. note the fn path reaches apps that watch modifier
+flags (wispr does); macos's own globe features sit below event taps and
+may ignore synthetic presses.
 """
 
 from __future__ import annotations
+
+FN_KEYCODE = 63
+
+
+def _is_fn(combo: str) -> bool:
+    return combo.strip().lower() in ("fn", "globe")
 
 
 class PushToTalk:
@@ -29,11 +41,26 @@ class PushToTalk:
             self.release()
         self.combo = combo
 
+    @staticmethod
+    def _fn_post(down: bool) -> None:
+        import Quartz
+        ev = Quartz.CGEventCreateKeyboardEvent(None, FN_KEYCODE, down)
+        # the physical globe key arrives as flagsChanged, not keydown
+        Quartz.CGEventSetType(ev, Quartz.kCGEventFlagsChanged)
+        Quartz.CGEventSetFlags(
+            ev, Quartz.kCGEventFlagMaskSecondaryFn if down else 0)
+        Quartz.CGEventPost(Quartz.kCGHIDEventTap, ev)
+
     def press(self) -> bool:
-        if not self._synth or self.down:
+        if self.down:
             return False
         try:
-            self._synth.down(self.combo)
+            if _is_fn(self.combo):
+                self._fn_post(True)
+            elif self._synth:
+                self._synth.down(self.combo)
+            else:
+                return False
             self.down = True
             return True
         except Exception as exc:
@@ -41,10 +68,15 @@ class PushToTalk:
             return False
 
     def release(self) -> bool:
-        if not self._synth or not self.down:
+        if not self.down:
             return False
         try:
-            self._synth.up(self.combo)
+            if _is_fn(self.combo):
+                self._fn_post(False)
+            elif self._synth:
+                self._synth.up(self.combo)
+            else:
+                return False
             self.down = False
             return True
         except Exception as exc:

@@ -159,9 +159,12 @@ started anything by hand.
 ## wispr push to talk
 
 click the left stick and hold it, talk, let go. thumbwar holds down your
-wispr flow shortcut for exactly that long. set wispr's push to talk to the
-combo in settings (default `ctrl+alt+cmd+space`) and grant accessibility to
-the terminal that runs thumbwar.
+wispr flow hotkey for exactly that long. the default `wispr_key` is `fn`,
+which presses the globe key — wispr's own out of the box hotkey — by
+posting the same flags-changed event the physical key makes. if wispr does
+not react to the synthetic globe on your machine, set `wispr_key` to a
+combo like `ctrl+alt+cmd+space` and set wispr's shortcut to match. either
+way, grant accessibility to the terminal that runs thumbwar.
 
 ## requirements
 
