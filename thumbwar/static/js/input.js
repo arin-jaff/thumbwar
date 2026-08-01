@@ -53,6 +53,11 @@ let eastDownAt = 0;
 let eastFired = false;
 let l3Held = false;
 
+// how long b must be held before it means interrupt rather than back.
+// a lingering human press easily runs 400-600ms, so anything shorter
+// turns "leave typing" into an accidental esc at the agent.
+const EAST_HOLD = 700;
+
 function onDown(name) {
   emit('anykey');
   emit('btn', { name, down: true });
@@ -127,7 +132,7 @@ function onUp(name) {
   }
   if (name === 'east') {
     const held = performance.now() - eastDownAt;
-    if (!eastFired && held < 380) eastTap();
+    if (!eastFired && held < EAST_HOLD) eastTap();
     eastFired = false;
   }
 }
@@ -150,12 +155,12 @@ function deckKeys(name) {
       eastDownAt = performance.now();
       eastFired = false;
       setTimeout(() => {
-        if (!eastFired && performance.now() - eastDownAt >= 380 && S.mode === 'deck') {
+        if (!eastFired && performance.now() - eastDownAt >= EAST_HOLD && S.mode === 'deck') {
           eastFired = true;
           write('\x1b');
           rumble('interrupt');
         }
-      }, 390);
+      }, EAST_HOLD + 10);
       break;
     case 'west': setMode('wheel'); break;
     case 'north': write('\x0f'); rumble('tick'); break;   // ctrl+o, expand
