@@ -233,6 +233,24 @@ class Hub:
                 self.toast(str(exc), "error")
         elif t == "kill":
             self.mgr.kill(m.get("id", ""))
+        elif t == "duplicate":
+            self.touch()
+            src = self.mgr.sessions.get(m.get("id", ""))
+            if src:
+                try:
+                    self.mgr.spawn(src.cwd, src.name, src.cmd)
+                except RuntimeError as exc:
+                    self.toast(str(exc), "error")
+        elif t == "restart":
+            self.touch()
+            src = self.mgr.sessions.get(m.get("id", ""))
+            if src:
+                cwd, name, cmd = src.cwd, src.name, src.cmd
+                self.mgr.kill(src.id)
+                try:
+                    self.mgr.spawn(cwd, name, cmd)
+                except RuntimeError as exc:
+                    self.toast(str(exc), "error")
         elif t == "rumble":
             self.rumble(str(m.get("pattern", "")))
         elif t == "ptt":

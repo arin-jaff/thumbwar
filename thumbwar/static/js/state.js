@@ -9,6 +9,7 @@ export const S = {
   zoom: false,
   grid: false,
   typing: false,         // keystrokes flow into the active terminal
+  broadcast: false,      // stdin mirrors into every session
   away: false,
   settings: {},
   pad: { available: false, source: 'none', battery: null, tmux: false },

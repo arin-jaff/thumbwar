@@ -28,6 +28,7 @@
     <button data-goto="settings">settings</button>
   </nav>
   <div class="chips">
+    <span id="cast-chip" class="chip cast hidden">📡 broadcast</span>
     <span id="pad-chip" class="chip">no pad</span>
     <span id="battery-chip" class="chip hidden"></span>
     <span id="conn-chip" class="chip">connecting.</span>
@@ -47,11 +48,14 @@
 <aside id="wheel" class="panel hidden" aria-label="command wheel">
   <div class="panel-title"><span class="spark">✻</span> the wheel</div>
   <div id="wheel-groups"></div>
-  <div id="wheel-window">
-    <div id="wheel-items"></div>
-    <div class="wheel-caret">❯</div>
+  <div id="wheel-stage">
+    <div id="wheel-pie"></div>
+    <div class="pie-hub">
+      <div id="hub-label"></div>
+      <div id="hub-hint"></div>
+    </div>
   </div>
-  <div class="panel-note">dpad rolls · a sends · b backs out</div>
+  <div class="panel-note">stick points · dpad rolls · lb rb flip groups · a sends · b backs out</div>
 </aside>
 
 <aside id="prs" class="panel hidden" aria-label="pull requests">

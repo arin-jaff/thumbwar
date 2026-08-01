@@ -56,6 +56,14 @@ function paintPad() {
 
 on('padchange', paintPad);
 
+// broadcast mode: one keystroke, every agent
+const castChip = document.getElementById('cast-chip');
+on('broadcast', () => {
+  castChip.classList.toggle('hidden', !S.broadcast);
+  toast(S.broadcast ? 'broadcast on: you are typing into every agent' : 'broadcast off', 'info');
+});
+castChip.addEventListener('click', () => { S.broadcast = false; emit('broadcast'); });
+
 on('battery', () => {
   const b = S.pad.battery;
   if (!b) return;
@@ -108,7 +116,8 @@ const H = {
     [chip('lr', 'lb'), 'esc'], [chip('lr', 'rb'), 'enter'], [chip('stick', 'l3'), 'hold to talk'],
   ],
   wheel: [
-    [chip('dpad', '✚'), 'roll · flip groups'], [chip('a', 'a'), 'send'], [chip('b', 'b'), 'close'],
+    [chip('stick', 'r✜'), 'point'], [chip('dpad', '✚'), 'roll'], [chip('lr', 'lb rb'), 'groups'],
+    [chip('a', 'a'), 'send'], [chip('b', 'b'), 'close'],
   ],
   prs: [
     [chip('dpad', '✚'), 'pick'], [chip('lr', 'r2'), 'squeeze to merge'], [chip('a', 'a'), 'checkout'],

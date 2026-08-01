@@ -160,8 +160,8 @@ function wheelKeys(name) {
   switch (name) {
     case 'dpad_up': wheel.roll(-1); break;
     case 'dpad_down': wheel.roll(1); break;
-    case 'dpad_left': wheel.group(-1); break;
-    case 'dpad_right': wheel.group(1); break;
+    case 'dpad_left': case 'l1': wheel.group(-1); break;
+    case 'dpad_right': case 'r1': wheel.group(1); break;
     case 'south': wheel.fire(); break;
     case 'east': case 'west': setMode('deck'); break;
   }
@@ -282,6 +282,7 @@ document.addEventListener('keydown', (e) => {
   if (e.target.closest && e.target.closest('.xterm, input, textarea')) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (/^[1-9]$/.test(e.key) && S.mode === 'deck') { deck.jump(+e.key - 1); return; }
+  if (/^[1-9]$/.test(e.key) && S.mode === 'wheel') { wheel.pick(+e.key - 1); return; }
   const name = KEYMAP[e.key];
   if (!name) return;
   e.preventDefault();
@@ -315,6 +316,7 @@ function frame(now) {
     }
   }
   if (S.mode === 'prs') prs.pressure(axes.r2, dt);
+  if (S.mode === 'wheel') wheel.point(axes.rx, axes.ry);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

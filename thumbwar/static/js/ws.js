@@ -36,5 +36,11 @@ export function sendStdin(id, text) {
   const bytes = typeof text === 'string' ? enc.encode(text) : text;
   let bin = '';
   for (const b of bytes) bin += String.fromCharCode(b);
-  send({ t: 'stdin', id, data: btoa(bin) });
+  const data = btoa(bin);
+  // broadcast mode mirrors every keystroke into every agent
+  if (S.broadcast && S.order.includes(id)) {
+    for (const sid of S.order) send({ t: 'stdin', id: sid, data });
+    return;
+  }
+  send({ t: 'stdin', id, data });
 }
