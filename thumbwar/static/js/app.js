@@ -11,6 +11,7 @@ import './prs.js';
 import './spawn.js';
 import './settings.js';
 import './overlay.js';
+import './help.js';
 
 const connChip = document.getElementById('conn-chip');
 const padChip = document.getElementById('pad-chip');
@@ -142,39 +143,9 @@ function renderHints() {
 on('mode', renderHints);
 on('typing', renderHints);
 
-// -- help content ---------------------------------------------------------
+// -- help content (the live map itself lives in help.js) -------------------
 
 document.getElementById('help-art').textContent = WORDMARK;
-
-const HELP = [
-  ['the deck', [
-    ['a', 'type into the agent'], ['b', 'back · hold to interrupt'],
-    ['x', 'the command wheel'], ['y', 'expand output'],
-    ['right stick', 'flip through cards'], ['left stick', 'scroll · l2 turbo'],
-    ['stick up', 'zoom'], ['stick down', 'grid'],
-  ]],
-  ['judgment', [
-    ['lb', 'reject the hunk'], ['rb', 'accept the hunk'],
-    ['r2 squeeze', 'merge a pr'], ['hold b', 'interrupt the agent'],
-    ['l3 + r3', 'interrupt everyone'],
-  ]],
-  ['buttons', [
-    ['start', 'new agent'], ['select', 'settings'],
-    ['share', 'away mode'], ['guide', 'this screen'],
-    ['l3 hold', 'push to talk'], ['r3', 'recenter'],
-    ['paddles', 'quick slash commands'],
-  ]],
-  ['keyboard', [
-    ['arrows', 'move'], ['enter', 'type'], ['esc', 'back'],
-    ['n', 'new'], [',', 'settings'], ['a', 'away'], ['?', 'help'],
-    ['1 to 9', 'jump to card'], ['ctrl `', 'leave typing'],
-  ]],
-];
-
-document.getElementById('help-cols').innerHTML = HELP.map(([title, rows]) => `
-  <div class="help-group"><h3>${title}</h3>
-    ${rows.map(([k, v]) => `<div class="help-row"><span class="k"><span class="btn-chip">${k}</span></span>${v}</div>`).join('')}
-  </div>`).join('');
 
 // -- chrome clicks --------------------------------------------------------
 

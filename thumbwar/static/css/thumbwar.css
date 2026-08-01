@@ -371,17 +371,33 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .away-dot .d.ready { background: var(--mint); }
 .away-dot .d.needs_you { background: var(--marigold); }
 
-/* help */
+/* help: the live controller map */
 .help-card {
   background: var(--foam); border-radius: var(--r-xl); box-shadow: var(--pop);
-  padding: 30px 38px; width: min(860px, 92vw); max-height: 84vh; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 18px;
+  padding: 26px 38px 22px; width: min(920px, 94vw); max-height: 88vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 12px;
 }
 .wordmark { font-family: var(--mono); font-size: 13px; line-height: 1.1; color: var(--orange); text-align: center; }
-#help-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 20px; }
-.help-group h3 { font-size: 13px; font-weight: 700; color: var(--mint-deep); margin-bottom: 8px; text-transform: lowercase; }
-.help-row { display: flex; gap: 10px; align-items: center; padding: 3.5px 0; font-size: 13px; font-weight: 500; }
-.help-row .k { min-width: 86px; display: flex; gap: 4px; }
+#help-map svg { width: 100%; height: auto; display: block; }
+.map-body { fill: var(--mist); stroke: var(--ink-12); stroke-width: 2.5; }
+.map-ring { fill: var(--ink-06); stroke: var(--ink-12); stroke-width: 2; }
+.mk { fill: var(--foam); stroke: var(--ink-12); stroke-width: 2; transition: fill .08s ease; }
+.mk.lit { fill: var(--orange); stroke: var(--orange-deep); }
+.mk.back { fill: none; stroke-dasharray: 4 3; }
+.mk.back.lit { fill: var(--orange-soft); }
+.mk-arm { fill: transparent; stroke: none; }
+.mk-arm.lit { fill: var(--orange); }
+.map-key {
+  font: 800 12px var(--display); fill: var(--ink-70);
+  text-anchor: middle; dominant-baseline: central; pointer-events: none;
+}
+.map-label { font: 600 12.5px var(--display); fill: var(--ink-70); }
+.map-label.dim { fill: var(--ink-45); font-size: 11.5px; }
+.map-line { stroke: var(--ink-12); stroke-width: 1.5; fill: none; }
+#help-kbd {
+  display: flex; flex-wrap: wrap; gap: 7px 16px; justify-content: center;
+  font-size: 12.5px; font-weight: 600; color: var(--ink-70);
+}
 
 /* ---- footer hints ---- */
 

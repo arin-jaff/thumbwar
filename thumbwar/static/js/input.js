@@ -54,9 +54,14 @@ let l3Held = false;
 
 function onDown(name) {
   emit('anykey');
+  emit('btn', { name, down: true });
 
-  // overlays swallow everything
-  if (S.mode === 'help') { setMode('deck'); return; }
+  // overlays swallow everything. help stays up while you mash, so the
+  // map can light up under your thumbs; b, a or guide put it away.
+  if (S.mode === 'help') {
+    if (['east', 'south', 'guide', 'start', 'select'].includes(name)) setMode('deck');
+    return;
+  }
   if (S.mode === 'done') {
     if (['south', 'east', 'l1', 'r1'].includes(name)) emit('done:ack');
     return;
@@ -102,6 +107,7 @@ function onDown(name) {
 }
 
 function onUp(name) {
+  emit('btn', { name, down: false });
   if (name === 'l3') {
     l3Held = false;
     send({ t: 'ptt', down: false });
