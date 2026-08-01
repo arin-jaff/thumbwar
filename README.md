@@ -116,9 +116,11 @@ out. it feels excellent and nobody merges by accident.
 
 ## the disclaimer
 
-press share when your agents are cooking and go live your life. the moment
-they all go quiet, a floating card slides over whatever you are doing,
-anywhere in macos, over full screen apps too:
+press share when your agents are cooking and go live your life. once they
+have all actually come to rest — a confirmation window swallows claude's
+pauses between subtasks, and the end of turn bell fast tracks a real
+finish — a floating card slides over whatever you are doing, anywhere in
+macos, over full screen apps too:
 
 ```
   ✻  your agents are done          ( 3 )

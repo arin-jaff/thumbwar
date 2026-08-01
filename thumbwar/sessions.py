@@ -47,6 +47,12 @@ PROMPT_MARKERS = (b"doyouwant", b"1.yes", b"entertoconfirm", b"proceed?", b"(y/n
 BUSY_LINGER = 3.0
 #: a work burst shorter than this never counts as "finished" (menu flickers).
 MIN_WORK_SPAN = 4.0
+#: leaving work only nominates a finish. claude pauses its spinner between
+#: subtasks and tools, so the quiet must last this long before "done" is
+#: believed. the terminal bell is claude's own end-of-turn signal, so a
+#: rung session confirms much faster.
+FINISH_CONFIRM = 12.0
+FINISH_CONFIRM_BELL = 2.5
 
 RING_MAX = 128 * 1024
 
@@ -66,6 +72,7 @@ def feed_status(sess: "Session", chunk: bytes, now: float) -> bool:
         if now - sess.busy_seen > BUSY_LINGER:
             sess.work_started = now
             sess.finished = False
+            sess.rest_at = 0.0        # the pause was a pause, not a finish
             fresh_burst = True
         sess.busy_seen = now
         # a fresh work burst invalidates whatever prompt text came before
@@ -116,6 +123,16 @@ async def git_info(cwd: str) -> tuple:
     return parse_git_status(out.decode("utf-8", "replace"))
 
 
+def should_finish(sess: "Session", now: float) -> bool:
+    """a nominated finish becomes real once the quiet has lasted long
+    enough that this is the end of the task, not a gap between subtasks."""
+    if not sess.rest_at or sess.finished or sess.state != "ready":
+        return False
+    wait = (FINISH_CONFIRM_BELL if sess.bell_at >= sess.work_started > 0
+            else FINISH_CONFIRM)
+    return now - sess.rest_at >= wait
+
+
 def compute_state(sess: "Session", now: float) -> str:
     if sess.proc and sess.proc.poll() is not None:
         return "dead"
@@ -147,7 +164,8 @@ class Session:
     work_started: float = 0.0
     output_at: float = 0.0
     bell_at: float = 0.0
-    finished: bool = False         # went working -> quiet, not yet acknowledged
+    rest_at: float = 0.0           # candidate finish, confirmed after quiet
+    finished: bool = False         # confirmed done, not yet acknowledged
     branch: str = ""               # git branch of cwd, refreshed by the poller
     dirty: int = 0                 # dirty file count
 
@@ -391,6 +409,7 @@ class SessionManager:
             await asyncio.sleep(0.5)
             now = time.monotonic()
             any_working = False
+            any_waiting = False
             for sess in list(self.sessions.values()):
                 state = compute_state(sess, now)
                 if state == "dead":
@@ -398,21 +417,34 @@ class SessionManager:
                     continue
                 if state == "working":
                     any_working = True
+                if state == "needs_you":
+                    any_waiting = True
                 was = sess.state
                 if state != was:
                     sess.state = state
-                    left_work = was == "working" and state in ("ready", "needs_you")
+                    # leaving work only nominates a finish; should_finish
+                    # confirms it once the quiet has lasted
+                    left_work = was == "working" and state == "ready"
                     long_enough = sess.busy_seen - sess.work_started >= MIN_WORK_SPAN
                     rang = sess.bell_at >= sess.work_started > 0
                     if left_work and (long_enough or rang):
-                        sess.finished = True
+                        sess.rest_at = now
+                    if state == "working":
+                        sess.rest_at = 0.0
                     self.broadcast({"t": "status", "id": sess.id,
                                     "state": state, "finished": sess.finished})
                     if (was == "working" and state == "needs_you"
                             and self.on_needs_you):
                         await self.on_needs_you(sess.name)
+                if should_finish(sess, now):
+                    sess.finished = True
+                    self.broadcast({"t": "status", "id": sess.id,
+                                    "state": sess.state, "finished": True})
             done = [s.name for s in self.sessions.values() if s.finished]
-            if done and not any_working and not self._all_done_latched:
+            # an agent waiting on a decision is not done, it is stuck, and
+            # its own overlay already went out. hold the party until then.
+            if (done and not any_working and not any_waiting
+                    and not self._all_done_latched):
                 self._all_done_latched = True
                 await self.on_all_done(done)
 
@@ -432,6 +464,7 @@ class SessionManager:
     def ack(self) -> None:
         """the human is back. clear finished flags and re arm the watcher."""
         for s in self.sessions.values():
+            s.rest_at = 0.0
             if s.finished:
                 s.finished = False
                 self.broadcast({"t": "status", "id": s.id,

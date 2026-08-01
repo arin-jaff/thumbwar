@@ -9,6 +9,7 @@ import * as wheel from './wheel.js';
 import * as prs from './prs.js';
 import * as spawn from './spawn.js';
 import * as settingsUI from './settings.js';
+import * as tour from './tour.js';
 import { setMode } from './modes.js';
 
 export const axes = { lx: 0, ly: 0, rx: 0, ry: 0, l2: 0, r2: 0 };
@@ -70,6 +71,9 @@ function onDown(name) {
     if (name === 'east' || name === 'south') { send({ t: 'away', on: false }); }
     return;
   }
+
+  // a live tour may claim this press (a on info steps, y to skip)
+  if (tour.intercept(name)) return;
 
   // global buttons
   switch (name) {

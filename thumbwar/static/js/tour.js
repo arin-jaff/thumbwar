@@ -132,6 +132,7 @@ function render() {
       <p></p>
       <div class="tour-foot">
         <span class="tour-chips">${(s.chips || []).map((c) => `<span class="btn-chip">${c}</span>`).join('')}</span>
+        <span class="tour-btnhint">${s.last ? 'a finishes' : s.when ? 'y skips this step' : 'a for next · y skips'}</span>
         <button class="bubble-btn tour-next">${s.last ? 'finish' : s.when ? 'skip step' : 'next'}</button>
       </div>
     </div>`;
@@ -139,6 +140,27 @@ function render() {
   el.querySelector('p').textContent = s.body;
   el.querySelector('.tour-next').addEventListener('click', () => (s.last ? finish(true) : next()));
   el.querySelector('.tour-skip').addEventListener('click', () => finish(false));
+}
+
+// the pad path: a advances info steps (the ones not waiting on an
+// action, where a would otherwise fall through and start typing), y
+// skips any step. action steps keep a routed to the app, because
+// "press a to talk to it" must actually press a.
+export function intercept(name) {
+  if (!active || S.typing) return false;
+  const s = STEPS[idx];
+  if (!s) return false;
+  if (name === 'north') {
+    rumble('tick');
+    if (s.last) finish(true); else next();
+    return true;
+  }
+  if (name === 'south' && !s.when && S.mode === 'deck') {
+    rumble('tick');
+    if (s.last) finish(true); else next();
+    return true;
+  }
+  return false;
 }
 
 on('tour:start', start);

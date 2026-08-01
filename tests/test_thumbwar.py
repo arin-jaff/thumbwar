@@ -11,8 +11,9 @@ from thumbwar.bt import parse_bt
 from thumbwar.daemon import LABEL, plist_bytes
 from thumbwar.gh import _checks
 from thumbwar.overlay import _applescript_string
-from thumbwar.sessions import (Session, compute_state, feed_status,
-                               parse_git_status, tmux_name)
+from thumbwar.sessions import (FINISH_CONFIRM, FINISH_CONFIRM_BELL, Session,
+                               compute_state, feed_status, parse_git_status,
+                               should_finish, tmux_name)
 
 # claude paints with cursor moves instead of spaces. real capture shape.
 WORKING_CHUNK = b"\x1b[38;5;214m\xe2\x9c\xbb\x1b[0m Brewing\x1b[8C(\x1b[1mesc\x1b[0m to interrupt)"
@@ -53,6 +54,45 @@ class StatusDetection(unittest.TestCase):
         s = self.sess()
         feed_status(s, b"ding\x07", now=100.0)
         self.assertEqual(s.bell_at, 100.0)
+
+
+class FinishConfirmation(unittest.TestCase):
+    """a pause between subtasks must not read as "done"."""
+
+    def resting(self, *, bell=False):
+        s = Session(id="t", name="t", cwd="/", cmd="x")
+        s.state = "ready"
+        s.work_started = 100.0
+        s.busy_seen = 130.0
+        s.rest_at = 133.0            # left work at t=133
+        if bell:
+            s.bell_at = 132.0
+        return s
+
+    def test_short_quiet_is_not_done(self):
+        s = self.resting()
+        self.assertFalse(should_finish(s, 133.0 + FINISH_CONFIRM - 1))
+
+    def test_long_quiet_is_done(self):
+        s = self.resting()
+        self.assertTrue(should_finish(s, 133.0 + FINISH_CONFIRM + 0.1))
+
+    def test_bell_confirms_fast(self):
+        s = self.resting(bell=True)
+        self.assertTrue(should_finish(s, 133.0 + FINISH_CONFIRM_BELL + 0.1))
+
+    def test_needs_you_never_finishes(self):
+        s = self.resting()
+        s.state = "needs_you"
+        self.assertFalse(should_finish(s, 133.0 + FINISH_CONFIRM + 10))
+
+    def test_new_burst_cancels_the_candidate(self):
+        s = self.resting()
+        # claude picks the next subtask back up: spinner repaints
+        feed_status(s, b"\x1b[38;5;214m*\x1b[0m Brewing (\x1b[1mesc\x1b[0m to interrupt)",
+                    now=140.0)
+        self.assertEqual(s.rest_at, 0.0)
+        self.assertFalse(should_finish(s, 140.0 + FINISH_CONFIRM + 10))
 
 
 class BluetoothParsing(unittest.TestCase):
