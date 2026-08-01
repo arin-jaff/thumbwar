@@ -2,6 +2,7 @@
 
 import { S } from './state.js';
 import { send } from './ws.js';
+import { sound } from './sound.js';
 
 // local approximations of the backend patterns, for gamepad api pads
 const LOCAL = {
@@ -15,6 +16,7 @@ const LOCAL = {
   error:     [{ d: 80, s: 0.8, w: 0 }, { gap: 60 }, { d: 80, s: 0.8, w: 0 }],
   connect:   [{ d: 40, s: 0, w: 0.45 }, { gap: 50 }, { d: 70, s: 0.2, w: 0.6 }],
   interrupt: [{ d: 160, s: 0.9, w: 0.3 }],
+  needs_you: [{ d: 50, s: 0, w: 0.55 }, { gap: 70 }, { d: 90, s: 0.4, w: 0 }],
   heartbeat: [{ d: 60, s: 0.35, w: 0 }, { gap: 100 }, { d: 80, s: 0.55, w: 0 }],
   still:     [],
 };
@@ -22,6 +24,7 @@ const LOCAL = {
 let localTimer = null;
 
 export function rumble(pattern) {
+  sound(pattern);          // the audio twin plays even when rumble is off
   if (S.settings.rumble === false) return;
   if (S.pad.available) {
     send({ t: 'rumble', pattern });

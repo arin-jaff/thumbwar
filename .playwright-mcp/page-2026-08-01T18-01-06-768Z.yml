@@ -1,0 +1,47 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]: ✻
+      - generic [ref=e5]: thumbwar
+      - generic [ref=e6]: vibe coding, gamified
+    - navigation [ref=e7]:
+      - button "deck" [ref=e8] [cursor=pointer]
+      - button "prs" [ref=e9] [cursor=pointer]
+      - button "wheel" [ref=e10] [cursor=pointer]
+      - button "settings" [ref=e11] [cursor=pointer]
+    - generic [ref=e12]:
+      - generic "pad disabled" [ref=e13]: no pad
+      - generic [ref=e14]: live
+  - main [ref=e15]:
+    - generic [ref=e16]:
+      - generic [ref=e17]: ✻
+      - heading "no agents yet" [level=1] [ref=e18]
+      - paragraph [ref=e19]:
+        - text: press
+        - generic [ref=e20]: start
+        - text: or hit n to spawn your first claude
+  - contentinfo [ref=e21]:
+    - generic [ref=e22]:
+      - generic [ref=e23]: a
+      - text: type
+    - generic [ref=e24]:
+      - generic [ref=e25]: x
+      - text: wheel
+    - generic [ref=e26]:
+      - generic [ref=e27]: "y"
+      - text: expand
+    - generic [ref=e28]:
+      - generic [ref=e29]: r✜
+      - text: flip cards
+    - generic [ref=e30]:
+      - generic [ref=e31]: l✜
+      - text: scroll
+    - generic [ref=e32]:
+      - generic [ref=e33]: lb
+      - text: reject
+    - generic [ref=e34]:
+      - generic [ref=e35]: rb
+      - text: accept
+    - generic [ref=e36]:
+      - generic [ref=e37]: start
+      - text: new

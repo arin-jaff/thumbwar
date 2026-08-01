@@ -83,13 +83,17 @@ function onDown(name) {
       send({ t: 'ptt', down: true });
       rumble('tick');
       return;
-    case 'r3':
+    case 'r3': {
       if (l3Held) { send({ t: 'interrupt_all' }); return; }
+      // r3 takes you to whatever matters: the next agent waiting on a
+      // decision if there is one, otherwise just recenter the view.
+      if (S.mode === 'deck' && deck.jumpNeedsYou()) { rumble('thock'); return; }
       deck.setZoom(false); deck.setGrid(false);
       const s = activeSession();
       if (s) s.term.toBottom();
       rumble('thock');
       return;
+    }
     case 'l4': case 'r4': case 'pl': case 'pr': {
       const slot = (S.settings.quick_slots || {})[name];
       if (slot && S.mode === 'deck') slashCommand(slot);
@@ -314,6 +318,7 @@ const KEYMAP = {
   '[': 'rstick_left', ']': 'rstick_right',
   'z': 'rstick_up', 'g': 'rstick_down',
   'n': 'start', ',': 'select', 'a': 'share', '?': 'guide',
+  'Tab': 'r3',
 };
 
 document.addEventListener('keydown', (e) => {

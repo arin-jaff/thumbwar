@@ -124,10 +124,12 @@ class Session:
 class SessionManager:
     def __init__(self, loop: asyncio.AbstractEventLoop, *,
                  broadcast: Callable[[dict], None],
-                 on_all_done: Callable[[List[str]], Awaitable[None]]) -> None:
+                 on_all_done: Callable[[List[str]], Awaitable[None]],
+                 on_needs_you: Optional[Callable[[str], Awaitable[None]]] = None) -> None:
         self.loop = loop
         self.broadcast = broadcast
         self.on_all_done = on_all_done
+        self.on_needs_you = on_needs_you
         self.sessions: Dict[str, Session] = {}
         self._counter = 0
         self._all_done_latched = False
@@ -359,6 +361,9 @@ class SessionManager:
                         sess.finished = True
                     self.broadcast({"t": "status", "id": sess.id,
                                     "state": state, "finished": sess.finished})
+                    if (was == "working" and state == "needs_you"
+                            and self.on_needs_you):
+                        await self.on_needs_you(sess.name)
             done = [s.name for s in self.sessions.values() if s.finished]
             if done and not any_working and not self._all_done_latched:
                 self._all_done_latched = True

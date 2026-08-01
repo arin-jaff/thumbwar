@@ -14,6 +14,7 @@ DEFAULTS: Dict[str, Any] = {
     "countdown_seconds": 3,        # 0 means no countdown, just a dismiss button
     "auto_return": True,           # at zero, bring thumbwar back to the front
     "overlay_always": False,       # show the system overlay even when not away
+    "overlay_needs_you": True,     # overlay when an agent starts waiting on you
     # away mode
     "auto_away": False,            # slip away automatically when agents are cooking
     "auto_away_after": 30,         # seconds of no input before auto away
@@ -21,6 +22,9 @@ DEFAULTS: Dict[str, Any] = {
     "rumble": True,
     "rumble_intensity": 0.8,       # 0..1 scales every pattern
     "deadzone": 0.12,
+    "sound": True,                 # synthesized ui sounds
+    "sound_volume": 0.4,           # 0..1
+    "theme": "mint",               # mint | peach | lavender | midnight
     # wispr flow push to talk. set wispr's shortcut to the same combo.
     "wispr_key": "ctrl+alt+cmd+space",
     # sessions

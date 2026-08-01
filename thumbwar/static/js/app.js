@@ -77,6 +77,10 @@ on('battery', () => {
 
 on('ws:toast', ({ text, kind }) => toast(text, kind));
 
+on('ws:needs_you', ({ name }) => {
+  if (!S.away) toast(`${name} needs you · r3 or tab jumps there`, 'info');
+});
+
 const warned = new Set();
 function warnOnce(key, text) {
   if (!text || warned.has(key)) return;

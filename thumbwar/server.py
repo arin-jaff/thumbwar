@@ -69,7 +69,8 @@ class Hub:
     async def start(self, app: web.Application) -> None:
         self.loop = asyncio.get_running_loop()
         self.mgr = SessionManager(self.loop, broadcast=self.broadcast,
-                                  on_all_done=self.on_all_done)
+                                  on_all_done=self.on_all_done,
+                                  on_needs_you=self.on_needs_you)
         self.mgr.start()
         if not self.no_pad:
             self.pad = PadBridge(self.loop, broadcast=self.broadcast,
@@ -93,17 +94,25 @@ class Hub:
         self.broadcast({"t": "alldone", "names": names})
         self.rumble("done")
         if self.away or self.settings["overlay_always"]:
-            if self._overlay_task is None or self._overlay_task.done():
-                self._overlay_task = self.loop.create_task(self._show_overlay(names))
+            body = ", ".join(names[:3]) + (" and more" if len(names) > 3 else "")
+            self._overlay("your agents are done", body or "come see what they made")
 
-    async def _show_overlay(self, names) -> None:
-        body = ", ".join(names[:3]) + (" and more" if len(names) > 3 else "")
+    async def on_needs_you(self, name: str) -> None:
+        self.broadcast({"t": "needs_you", "name": name})
+        if ((self.away or self.settings["overlay_always"])
+                and self.settings["overlay_needs_you"]):
+            self._overlay("an agent needs you", f"{name} is waiting on a decision")
+
+    def _overlay(self, title: str, body: str) -> None:
+        if self._overlay_task is None or self._overlay_task.done():
+            self._overlay_task = self.loop.create_task(self._show_overlay(title, body))
+
+    async def _show_overlay(self, title: str, body: str) -> None:
         try:
             proc = await asyncio.create_subprocess_exec(
                 sys.executable, "-m", "thumbwar.overlay",
                 "--seconds", str(self.settings["countdown_seconds"]),
-                "--title", "your agents are done",
-                "--body", body or "come see what they made")
+                "--title", title, "--body", body)
             code = await proc.wait()
         except OSError as exc:
             # never strand the human in away mode because a card failed to draw
@@ -301,7 +310,8 @@ class Hub:
             await ws.send_json({"t": "dirs", "dirs": self.dirs(),
                                 "tmux": self.mgr.list_tmux()})
         elif t == "overlay_test":
-            self.loop.create_task(self._show_overlay(["overlay test"]))
+            self.loop.create_task(
+                self._show_overlay("your agents are done", "overlay test"))
         elif t == "open_url":
             # a pad press has no browser user activation, so window.open is
             # blocked. hand the url to the os instead.
@@ -323,8 +333,17 @@ async def index(request: web.Request) -> web.FileResponse:
     return web.FileResponse(STATIC / "index.html")
 
 
+@web.middleware
+async def no_cache(request: web.Request, handler):
+    # es module imports sit in the browser's memory cache, which happily
+    # serves last week's deck after an upgrade. force revalidation.
+    resp = await handler(request)
+    resp.headers.setdefault("Cache-Control", "no-cache")
+    return resp
+
+
 def build_app(hub: Hub) -> web.Application:
-    app = web.Application()
+    app = web.Application(middlewares=[no_cache])
     app.router.add_get("/", index)
     app.router.add_get("/ws", hub.ws_handler)
     app.router.add_static("/static", STATIC)

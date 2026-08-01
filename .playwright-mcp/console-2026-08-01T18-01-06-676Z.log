@@ -1,0 +1,6 @@
+[    9036ms] TypeError: deck.jumpNeedsYou is not a function
+    at onDown (http://127.0.0.1:8790/static/js/input.js:90:37)
+    at HTMLDocument.<anonymous> (http://127.0.0.1:8790/static/js/input.js:333:3)
+    at eval (eval at <anonymous> (eval at evaluate (:303:30)), <anonymous>:9:12)
+    at async eval (eval at evaluate (:303:30), <anonymous>:4:30)
+    at async <anonymous>:329:30
