@@ -282,6 +282,23 @@ on('ws:pad', ({ ev }) => {
 
 // -- browser gamepad fallback --------------------------------------------
 
+// instant feedback the moment a pad wakes up, bluetooth included
+window.addEventListener('gamepadconnected', (e) => {
+  if (!S.pad.available && S.pad.source !== 'gamepad') {
+    S.pad.source = 'gamepad';
+    emit('padchange');
+    emit('padfound', { id: e.gamepad.id || 'gamepad' });
+    rumble('connect');
+  }
+});
+window.addEventListener('gamepaddisconnected', () => {
+  if (S.pad.source === 'gamepad' && !(navigator.getGamepads && navigator.getGamepads()[0])) {
+    S.pad.source = 'none';
+    releaseAll();
+    emit('padchange');
+  }
+});
+
 const GP_BTN = ['south', 'east', 'west', 'north', 'l1', 'r1', 'l2b', 'r2b',
   'select', 'start', 'l3', 'r3', 'dpad_up', 'dpad_down', 'dpad_left', 'dpad_right', 'guide'];
 const gpState = { buttons: new Array(17).fill(false), dig: {} };
@@ -339,6 +356,10 @@ document.addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (/^[1-9]$/.test(e.key) && S.mode === 'deck') { deck.jump(+e.key - 1); return; }
   if (/^[1-9]$/.test(e.key) && S.mode === 'wheel') { wheel.pick(+e.key - 1); return; }
+  if (e.key === 'v' && !e.repeat) {
+    send({ t: 'set', key: 'input_viz', value: S.settings.input_viz === false });
+    return;
+  }
   const name = KEYMAP[e.key];
   if (!name) return;
   e.preventDefault();

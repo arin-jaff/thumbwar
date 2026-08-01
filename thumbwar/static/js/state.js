@@ -12,7 +12,8 @@ export const S = {
   broadcast: false,      // stdin mirrors into every session
   away: false,
   settings: {},
-  pad: { available: false, source: 'none', battery: null, tmux: false },
+  pad: { available: false, source: 'none', battery: null, tmux: false,
+         bt: { connected: [], paired: [] } },
   prs: { list: [], sel: 0, cwd: '', holding: 0, error: '' },
   wheel: { group: 0, item: 0 },
   spawnUI: { tab: 'dirs', dirs: [], tmux: [], sel: 0 },

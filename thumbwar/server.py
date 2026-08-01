@@ -18,7 +18,7 @@ from typing import Any, Dict, Optional, Set
 
 from aiohttp import WSMsgType, web
 
-from . import gh, settings as settings_mod
+from . import bt, gh, settings as settings_mod
 from .pad import PadBridge
 from .sessions import SessionManager
 from .wispr import PushToTalk
@@ -40,6 +40,8 @@ class Hub:
         self.pad: Optional[PadBridge] = None
         self.ptt = PushToTalk(self.settings["wispr_key"])
         self._overlay_task: Optional[asyncio.Task] = None
+        self.bt: Dict[str, Any] = {"connected": [], "paired": []}
+        self._bt_at = 0.0
 
     @property
     def url(self) -> str:
@@ -80,6 +82,7 @@ class Hub:
             if self.pad.start():
                 self.pad.play("connect")
         self.loop.create_task(self._auto_away_loop())
+        self.loop.create_task(self._bt_scan())
 
     async def stop(self, app: web.Application) -> None:
         if self.pad:
@@ -137,6 +140,11 @@ class Hub:
 
     # -- helpers -----------------------------------------------------------
 
+    async def _bt_scan(self) -> None:
+        self._bt_at = time.monotonic()
+        self.bt = await bt.scan()
+        self.broadcast({"t": "bt", **self.bt})
+
     def touch(self) -> None:
         self.last_activity = time.monotonic()
         if not self.away:
@@ -193,6 +201,7 @@ class Hub:
             "ptt": {"ok": self.ptt.error == "", "error": self.ptt.error},
             "tmux": bool(self.mgr.tmux_path()),
             "away": self.away,
+            "bt": self.bt,
         })
         try:
             async for msg in ws:
@@ -315,6 +324,10 @@ class Hub:
         elif t == "dirs":
             await ws.send_json({"t": "dirs", "dirs": self.dirs(),
                                 "tmux": self.mgr.list_tmux()})
+        elif t == "bt_scan":
+            # system_profiler is slow; do not let a chip clicker spam it
+            if time.monotonic() - self._bt_at > 30:
+                self.loop.create_task(self._bt_scan())
         elif t == "overlay_test":
             self.loop.create_task(
                 self._show_overlay("your agents are done", "overlay test"))

@@ -12,6 +12,8 @@ import './spawn.js';
 import './settings.js';
 import './overlay.js';
 import './help.js';
+import './viz.js';
+import './tour.js';
 
 const connChip = document.getElementById('conn-chip');
 const padChip = document.getElementById('pad-chip');
@@ -33,6 +35,7 @@ on('ws:hello', (m) => {
   S.pad.available = m.pad.available;
   S.pad.tmux = m.tmux;
   S.pad.error = m.pad.error || '';
+  if (m.bt) S.pad.bt = { connected: m.bt.connected || [], paired: m.bt.paired || [] };
   if (m.pad.available) S.pad.source = 'ornnpad';
   // hello also arrives on every reconnect, so reconcile rather than append
   const live = new Set(m.sessions.map((s) => s.id));
@@ -62,13 +65,41 @@ on('conn', ({ up }) => {
 
 function paintPad() {
   const words = { ornnpad: 'pad · hid', gamepad: 'pad · browser', waiting: 'pad · asleep', none: 'no pad' };
-  padChip.textContent = words[S.pad.source] || 'no pad';
+  let text = words[S.pad.source] || 'no pad';
+  let title = 'press guide or ? for the controller map';
+  if (S.pad.source === 'none' || S.pad.source === 'waiting') {
+    // the bluetooth scan knows about pads the browser cannot see yet
+    const bt = S.pad.bt || {};
+    const short = (n) => n.split('(')[0].trim().toLowerCase();
+    if (bt.connected && bt.connected.length) {
+      text = 'pad · asleep';
+      title = `press any button on ${short(bt.connected[0])} to wake it`;
+    } else if (bt.paired && bt.paired.length) {
+      text = 'pad · off';
+      title = `${short(bt.paired[0])} is paired but off. turn it on, then press a button`;
+    } else if (S.pad.error) {
+      title = S.pad.error + ' · click to rescan bluetooth';
+    } else {
+      title = 'click to rescan bluetooth';
+    }
+  }
+  padChip.textContent = text;
   padChip.classList.toggle('live', S.pad.source === 'ornnpad' || S.pad.source === 'gamepad');
-  padChip.title = S.pad.source === 'none' && S.pad.error
-    ? S.pad.error : 'press guide or ? for the controller map';
+  padChip.title = title;
 }
 
 on('padchange', paintPad);
+on('ws:bt', (m) => {
+  S.pad.bt = { connected: m.connected || [], paired: m.paired || [] };
+  paintPad();
+});
+padChip.addEventListener('click', () => {
+  if (S.pad.source === 'none' || S.pad.source === 'waiting') {
+    send({ t: 'bt_scan' });
+    toast('scanning bluetooth for pads.', 'info');
+  }
+});
+on('padfound', ({ id }) => toast(`pad connected: ${id.split('(')[0].trim().toLowerCase()}`, 'mint'));
 
 // broadcast mode: one keystroke, every agent
 const castChip = document.getElementById('cast-chip');

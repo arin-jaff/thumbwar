@@ -1,6 +1,6 @@
 // the settings panel. dpad picks a row, left and right tune it.
 
-import { S, on } from './state.js';
+import { S, on, emit } from './state.js';
 import { send } from './ws.js';
 import { rumble } from './rumble.js';
 
@@ -39,6 +39,8 @@ const ROWS = [
   { key: 'quick_slots', slot: 'r4', label: 'paddle r4', kind: 'slot' },
   { key: 'quick_slots', slot: 'pl', label: 'paddle pl', kind: 'slot' },
   { key: 'quick_slots', slot: 'pr', label: 'paddle pr', kind: 'slot' },
+  { key: 'input_viz', label: 'input visualizer', kind: 'toggle' },
+  { label: 'take the tour', kind: 'button', run: () => emit('tour:start') },
   { label: 'try the rumble', kind: 'button', run: () => rumble('done') },
   { label: 'try the overlay', kind: 'button', run: () => send({ t: 'overlay_test' }) },
 ];

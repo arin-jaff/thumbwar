@@ -36,6 +36,9 @@ browser gamepad api, and everything has a keyboard path.
 - **rumble with an audio twin** — a tasteful haptic language, and a synthesized sound pack that speaks it too
 - **four themes** — mint, peach, lavender, and a midnight dark mode
 - **wispr push to talk** — hold the stick, talk, let go
+- **a guided tour** — wispr style: it asks you to do each thing and advances when you do
+- **an input visualizer** — a little live controller in the corner, lighting up under your thumbs
+- **bluetooth aware** — a sleeping paired pad gets you "press a button to wake it", not "no pad"
 - **tmux persistence** — sessions survive restarts and adopt from any terminal
 - **a background daemon** — `thumbwar daemon install` and the cockpit is always on
 - **a keyboard path for everything** — no pad required
@@ -78,7 +81,15 @@ and die with the server.
 press guide (or `?`) for the controller map: a live diagram that lights up
 under your thumbs as you press, with the stick caps following the real axes
 and the paddle labels reading your actual quick slots. it stays up while you
-mash; b puts it away.
+mash; b puts it away. the same drawing lives as a small input visualizer in
+the corner of the deck (`v` toggles it), and the pad chip is bluetooth
+aware: a paired controller that is asleep gets you "press a button to wake
+it" instead of a dead "no pad", and clicking the chip rescans.
+
+first run opens a guided tour, wispr flow style: thirteen short steps that
+ask you to actually spawn an agent, type, talk, roll the wheel, go away and
+come back — each one advances the moment you do it. skip it any time, take
+it again from settings.
 
 ![the controller map](docs/map.png)
 

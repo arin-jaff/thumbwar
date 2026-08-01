@@ -7,6 +7,7 @@ import tempfile
 import time
 import unittest
 
+from thumbwar.bt import parse_bt
 from thumbwar.daemon import LABEL, plist_bytes
 from thumbwar.gh import _checks
 from thumbwar.overlay import _applescript_string
@@ -52,6 +53,29 @@ class StatusDetection(unittest.TestCase):
         s = self.sess()
         feed_status(s, b"ding\x07", now=100.0)
         self.assertEqual(s.bell_at, 100.0)
+
+
+class BluetoothParsing(unittest.TestCase):
+    def test_finds_pads_by_minor_type_and_name(self):
+        blob = json.dumps({"SPBluetoothDataType": [{
+            "device_connected": [
+                {"8BitDo Ultimate 2 Wireless": {"device_minorType": "Gamepad"}},
+                {"AirPods Pro": {"device_minorType": "Headphones"}},
+            ],
+            "device_not_connected": [
+                {"DualSense Wireless Controller": {}},
+                {"Magic Keyboard": {"device_minorType": "Keyboard"}},
+            ],
+        }]})
+        out = parse_bt(blob)
+        self.assertEqual(out["connected"], ["8BitDo Ultimate 2 Wireless"])
+        self.assertEqual(out["paired"], ["DualSense Wireless Controller"])
+
+    def test_survives_junk(self):
+        self.assertEqual(parse_bt("{not json"), {"connected": [], "paired": []})
+        self.assertEqual(parse_bt('{"SPBluetoothDataType": [{}]}'),
+                         {"connected": [], "paired": []})
+        self.assertEqual(parse_bt('[1, 2]'), {"connected": [], "paired": []})
 
 
 class GitStatusParsing(unittest.TestCase):

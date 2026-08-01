@@ -25,6 +25,7 @@ DEFAULTS: Dict[str, Any] = {
     "sound": True,                 # synthesized ui sounds
     "sound_volume": 0.4,           # 0..1
     "theme": "mint",               # mint | peach | lavender | midnight
+    "input_viz": True,             # the little live controller in the corner
     # wispr flow push to talk. "fn" presses the globe key (wispr's default
     # hotkey); or use a combo like ctrl+alt+cmd+space and set wispr to match.
     "wispr_key": "fn",
