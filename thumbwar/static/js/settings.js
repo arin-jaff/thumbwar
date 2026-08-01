@@ -8,8 +8,13 @@ const listEl = document.getElementById('settings-list');
 
 const COUNTDOWNS = [0, 3, 5, 10, 15, 30];
 const AWAY_AFTER = [15, 30, 60, 120, 300];
+const THEMES = ['mint', 'peach', 'lavender', 'midnight'];
+// what a paddle can fire. cycle with left and right.
+const QUICK = ['/clear', '/compact', '/context', '/cost', '/todos', '/usage',
+  '/rewind', '/resume', '/export', '/review', '/model', '/doctor'];
 
 const ROWS = [
+  { key: 'theme', label: 'theme', kind: 'cycle', values: THEMES, fmt: (v) => v },
   { key: 'countdown_seconds', label: 'countdown before the pull back',
     kind: 'cycle', values: COUNTDOWNS, fmt: (v) => (v === 0 ? 'off' : v + 's') },
   { key: 'auto_return', label: 'jump back at zero', kind: 'toggle' },
@@ -30,6 +35,10 @@ const ROWS = [
   { key: 'merge_method', label: 'merge style', kind: 'cycle',
     values: ['squash', 'merge', 'rebase'], fmt: (v) => v },
   { key: 'session_cmd', label: 'session command', kind: 'text' },
+  { key: 'quick_slots', slot: 'l4', label: 'paddle l4', kind: 'slot' },
+  { key: 'quick_slots', slot: 'r4', label: 'paddle r4', kind: 'slot' },
+  { key: 'quick_slots', slot: 'pl', label: 'paddle pl', kind: 'slot' },
+  { key: 'quick_slots', slot: 'pr', label: 'paddle pr', kind: 'slot' },
   { label: 'try the rumble', kind: 'button', run: () => rumble('done') },
   { label: 'try the overlay', kind: 'button', run: () => send({ t: 'overlay_test' }) },
 ];
@@ -43,7 +52,7 @@ export function keys(name) {
     case 'dpad_left': adjust(row, -1); break;
     case 'dpad_right': adjust(row, 1); break;
     case 'south':
-      if (row.kind === 'toggle') adjust(row, 1);
+      if (row.kind === 'toggle' || row.kind === 'cycle' || row.kind === 'slot') adjust(row, 1);
       else if (row.kind === 'button') { row.run(); rumble('confirm'); }
       else if (row.kind === 'text') {
         const input = listEl.querySelector('.set-row.sel .set-input');
@@ -55,6 +64,14 @@ export function keys(name) {
 
 function adjust(row, dir) {
   if (!row || !row.key) { if (row && row.kind === 'button' && dir > 0) row.run(); return; }
+  if (row.kind === 'slot') {
+    const slots = { ...(S.settings.quick_slots || {}) };
+    const i = QUICK.indexOf(slots[row.slot]);
+    slots[row.slot] = QUICK[((i < 0 ? 0 : i) + dir + QUICK.length) % QUICK.length];
+    send({ t: 'set', key: 'quick_slots', value: slots });
+    rumble('tick');
+    return;
+  }
   const cur = S.settings[row.key];
   let next = cur;
   if (row.kind === 'toggle') next = !cur;
@@ -80,6 +97,10 @@ export function render() {
     if (row.kind === 'toggle') {
       d.innerHTML = `${label}<span class="set-toggle ${v ? 'on' : ''}"></span>`;
       d.querySelector('.set-toggle').addEventListener('click', () => adjust(row, 1));
+    } else if (row.kind === 'slot') {
+      d.innerHTML = `${label}<span class="set-value"></span>`;
+      d.querySelector('.set-value').textContent = (v || {})[row.slot] || '—';
+      d.addEventListener('click', () => adjust(row, 1));
     } else if (row.kind === 'cycle') {
       d.innerHTML = `${label}<span class="set-value"></span>`;
       d.querySelector('.set-value').textContent = row.fmt(v);

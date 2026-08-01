@@ -50,6 +50,39 @@
   --mono: 'SF Mono', ui-monospace, Menlo, monospace;
 }
 
+/* ---- theme packs: same bones, different weather ---- */
+
+:root[data-theme="peach"] {
+  --mist: #fbeee3;
+  --spearmint: #ffd9c0;
+  --orange-soft: #ffe3d1;
+}
+:root[data-theme="lavender"] {
+  --mist: #f1eefa;
+  --spearmint: #d9cff5;
+  --orange-soft: #f3d9ee;
+}
+:root[data-theme="midnight"] {
+  --mist: #0a1512;
+  --foam: #10241e;
+  --spearmint: #17493a;
+  --orange-soft: #4a2a1a;
+  --ink: #e2f5eb;
+  --ink-70: rgba(226, 245, 235, .74);
+  --ink-45: rgba(226, 245, 235, .5);
+  --ink-12: rgba(226, 245, 235, .15);
+  --ink-06: rgba(226, 245, 235, .08);
+  --well: #071310;
+  --pop: 0 18px 44px rgba(0, 0, 0, .5), 0 3px 9px rgba(0, 0, 0, .3);
+  --pop-soft: 0 8px 24px rgba(0, 0, 0, .35);
+}
+:root[data-theme="midnight"] .btn-chip { color: var(--foam); }
+:root[data-theme="midnight"] .chip-a, :root[data-theme="midnight"] .chip-b,
+:root[data-theme="midnight"] .chip-x, :root[data-theme="midnight"] .chip-y { color: #08130f; }
+:root[data-theme="midnight"] #modetabs button.on { color: #0a1512; }
+:root[data-theme="midnight"] .pie-slice.sel text { fill: #0e3527; }
+:root[data-theme="midnight"] .dot.on { background: var(--ink); }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body { height: 100%; overflow: hidden; }

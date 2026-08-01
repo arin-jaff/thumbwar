@@ -21,8 +21,15 @@ const toastsEl = document.getElementById('toasts');
 
 // -- hello ----------------------------------------------------------------
 
+function applyTheme() {
+  document.documentElement.dataset.theme = S.settings.theme || 'mint';
+}
+
+on('ws:settings', ({ settings }) => { S.settings = settings; applyTheme(); });
+
 on('ws:hello', (m) => {
   S.settings = m.settings;
+  applyTheme();
   S.pad.available = m.pad.available;
   S.pad.tmux = m.tmux;
   S.pad.error = m.pad.error || '';
