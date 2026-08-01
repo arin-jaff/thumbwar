@@ -32,8 +32,14 @@ on('ws:hello', (m) => {
   for (const id of [...S.sessions.keys()]) if (!live.has(id)) deck.removeSession(id);
   for (const info of m.sessions) {
     const known = S.sessions.get(info.id);
-    if (known) { Object.assign(known, { state: info.state, finished: info.finished }); known.term.resync(); }
-    else deck.addSession(info);
+    if (known) {
+      Object.assign(known, { state: info.state, finished: info.finished,
+                             branch: info.branch, dirty: info.dirty });
+      known.workT0 = info.state === 'working'
+        ? performance.now() - (info.working_for || 0) * 1000 : 0;
+      known.term.resync();
+      deck.paintGit(known);
+    } else deck.addSession(info);
   }
   deck.refresh();
   paintPad();

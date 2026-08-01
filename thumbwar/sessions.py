@@ -80,6 +80,39 @@ def tmux_name(sid: str, name: str) -> str:
     return f"tw-{sid}-{name}"[:40]
 
 
+def parse_git_status(text: str) -> tuple:
+    """branch and dirty file count from `git status --porcelain --branch`."""
+    lines = text.splitlines()
+    if not lines or not lines[0].startswith("##"):
+        return "", 0
+    head = lines[0][2:].strip()
+    if head.startswith("HEAD"):
+        branch = "detached"
+    elif head.startswith("No commits yet on"):
+        branch = head.rsplit(" ", 1)[-1]
+    else:
+        branch = head.split("...", 1)[0].split(" ", 1)[0]
+    return branch, len(lines) - 1
+
+
+async def git_info(cwd: str) -> tuple:
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "git", "-C", cwd, "status", "--porcelain", "--branch",
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+    except OSError:
+        return "", 0
+    try:
+        out, _ = await asyncio.wait_for(proc.communicate(), 5)
+    except asyncio.TimeoutError:
+        proc.kill()
+        return "", 0
+    if proc.returncode != 0:
+        return "", 0
+    return parse_git_status(out.decode("utf-8", "replace"))
+
+
 def compute_state(sess: "Session", now: float) -> str:
     if sess.proc and sess.proc.poll() is not None:
         return "dead"
@@ -112,13 +145,19 @@ class Session:
     output_at: float = 0.0
     bell_at: float = 0.0
     finished: bool = False         # went working -> quiet, not yet acknowledged
+    branch: str = ""               # git branch of cwd, refreshed by the poller
+    dirty: int = 0                 # dirty file count
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "id": self.id, "name": self.name, "cwd": self.cwd,
             "cmd": self.cmd, "state": self.state, "adopted": self.adopted,
             "created": self.created, "finished": self.finished,
+            "branch": self.branch, "dirty": self.dirty,
         }
+        if self.state == "working" and self.work_started:
+            d["working_for"] = round(time.monotonic() - self.work_started, 1)
+        return d
 
 
 class SessionManager:
@@ -134,15 +173,19 @@ class SessionManager:
         self._counter = 0
         self._all_done_latched = False
         self._ticker: Optional[asyncio.Task] = None
+        self._gitter: Optional[asyncio.Task] = None
 
     # -- lifecycle ---------------------------------------------------------
 
     def start(self) -> None:
         self._ticker = self.loop.create_task(self._tick_loop())
+        self._gitter = self.loop.create_task(self._git_loop())
 
     async def close(self) -> None:
         if self._ticker:
             self._ticker.cancel()
+        if self._gitter:
+            self._gitter.cancel()
         for s in list(self.sessions.values()):
             self._teardown(s, kill=not s.adopted)
 
@@ -200,6 +243,7 @@ class SessionManager:
         self.loop.add_reader(master, self._on_readable, sess)
         self._all_done_latched = False
         self.broadcast({"t": "session", "session": sess.to_dict()})
+        self.loop.create_task(self._git_refresh(sess))
         return sess
 
     def list_tmux(self) -> List[dict]:
@@ -368,6 +412,19 @@ class SessionManager:
             if done and not any_working and not self._all_done_latched:
                 self._all_done_latched = True
                 await self.on_all_done(done)
+
+    async def _git_loop(self) -> None:
+        while True:
+            for sess in list(self.sessions.values()):
+                await self._git_refresh(sess)
+            await asyncio.sleep(15)
+
+    async def _git_refresh(self, sess: Session) -> None:
+        branch, dirty = await git_info(sess.cwd)
+        if (branch, dirty) != (sess.branch, sess.dirty) and sess.id in self.sessions:
+            sess.branch, sess.dirty = branch, dirty
+            self.broadcast({"t": "git", "id": sess.id,
+                            "branch": branch, "dirty": dirty})
 
     def ack(self) -> None:
         """the human is back. clear finished flags and re arm the watcher."""

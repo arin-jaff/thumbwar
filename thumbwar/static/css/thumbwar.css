@@ -175,7 +175,10 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 }
 .card-state.working { color: var(--orange-deep); }
 .card-state.needs_you { color: var(--mint-deep); }
-.typing-tag { margin-left: auto; color: var(--mint-deep); font-family: var(--mono); font-size: 11px; }
+.card-git { font-family: var(--mono); font-size: 10.5px; color: var(--ink-45); }
+.card-git.dirty { color: var(--orange-deep); }
+.card-spark { margin-left: auto; opacity: .85; }
+.typing-tag { color: var(--mint-deep); font-family: var(--mono); font-size: 11px; }
 
 /* grid overview */
 #stage.grid .card { transition: transform .35s var(--spring), width .35s ease, height .35s ease; }

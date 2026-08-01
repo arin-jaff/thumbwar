@@ -29,6 +29,8 @@ export function addSession(info) {
     <div class="term-host"></div>
     <div class="card-foot">
       <span class="card-state">ready</span>
+      <span class="card-git hidden"></span>
+      <canvas class="card-spark" width="96" height="16"></canvas>
       <span class="typing-tag hidden">${GLYPH.prompt} typing</span>
     </div>`;
   el.querySelector('.card-name').textContent = info.name;
@@ -42,8 +44,12 @@ export function addSession(info) {
   });
   deckEl.appendChild(el);
 
-  const sess = { ...info, el, term: null };
+  const sess = { ...info, el, term: null, hist: new Array(48).fill(0), bytesAcc: 0 };
+  if (info.state === 'working') {
+    sess.workT0 = performance.now() - (info.working_for || 0) * 1000;
+  }
   S.sessions.set(info.id, sess);
+  paintGit(sess);
   S.order.push(info.id);
   // a new card takes the thumb unless you are mid sentence in another one
   if (!S.typing) S.active = S.order.length - 1;
@@ -182,6 +188,13 @@ function tickAnim() {
   requestAnimationFrame(tickAnim);
 }
 
+// how long this agent has been cooking, claude style
+function cookedFor(s, now) {
+  if (!s.workT0) return '';
+  const t = Math.max(0, (now - s.workT0) / 1000);
+  return t < 60 ? ` (${Math.floor(t)}s)` : ` (${Math.floor(t / 60)}m ${String(Math.floor(t % 60)).padStart(2, '0')}s)`;
+}
+
 // jewels and status words breathe on their own clock
 setInterval(() => {
   const now = performance.now();
@@ -193,7 +206,7 @@ setInterval(() => {
     s.el.classList.toggle('finished', !!s.finished && s.state !== 'working');
     if (s.state === 'working') {
       jewel.textContent = spinnerFrame(now);
-      stateEl.textContent = verbFor(s.id) + '.';
+      stateEl.textContent = verbFor(s.id) + '.' + cookedFor(s, now);
     } else if (s.state === 'needs_you') {
       jewel.textContent = GLYPH.caret;
       stateEl.textContent = 'needs you';
@@ -214,7 +227,9 @@ on('ws:session', ({ session }) => { addSession(session); rumble('thock'); });
 on('ws:exit', ({ id }) => removeSession(id));
 on('ws:out', (m) => {
   const s = S.sessions.get(m.id);
-  if (s && s.term) s.term.write(m.data);
+  if (!s || !s.term) return;
+  s.term.write(m.data);
+  s.bytesAcc += m.data.length * 0.75;      // base64 to bytes, near enough
 });
 on('ws:status', (m) => {
   const s = S.sessions.get(m.id);
@@ -222,9 +237,52 @@ on('ws:status', (m) => {
   const was = s.state;
   s.state = m.state;
   s.finished = m.finished;
+  if (was !== 'working' && m.state === 'working') s.workT0 = performance.now();
+  if (m.state !== 'working') s.workT0 = 0;
   if (was === 'working' && m.state === 'needs_you') rumble('needs_you');
   refresh();
 });
+
+// -- git chip and the output sparkline -------------------------------------
+
+export function paintGit(s) {
+  const el = s.el.querySelector('.card-git');
+  el.classList.toggle('hidden', !s.branch);
+  if (!s.branch) return;
+  el.textContent = s.branch + (s.dirty ? ` ±${s.dirty}` : '');
+  el.classList.toggle('dirty', s.dirty > 0);
+}
+
+on('ws:git', (m) => {
+  const s = S.sessions.get(m.id);
+  if (!s) return;
+  s.branch = m.branch;
+  s.dirty = m.dirty;
+  paintGit(s);
+});
+
+function drawSpark(s) {
+  const c = s.el.querySelector('.card-spark');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 96, 16);
+  const max = Math.max(1, ...s.hist);
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--mint').trim() || '#3fd99f';
+  s.hist.forEach((v, i) => {
+    if (!v) return;
+    const h = Math.max(1.5, Math.sqrt(v / max) * 15);
+    ctx.fillRect(i * 2, 16 - h, 1.5, h);
+  });
+}
+
+setInterval(() => {
+  for (const s of S.sessions.values()) {
+    s.hist.push(s.bytesAcc);
+    s.hist.shift();
+    s.bytesAcc = 0;
+    drawSpark(s);
+  }
+}, 1000);
 on('deck:nav', () => refresh());
 
 window.addEventListener('resize', () => {
