@@ -21,6 +21,25 @@ browser gamepad api, and everything has a keyboard path.
 
 ![the deck](docs/deck.png)
 
+## what's in the box
+
+- **the deck** — a springy carousel of live agent terminals, with zoom, a grid overview, and 1-9 jump keys
+- **the wheel** — every claude code command on a radial pie; point the right stick at a slice like a weapon wheel
+- **the controller map** — a live diagram that lights up under your thumbs, labeled with your real bindings
+- **status that reads the byte stream** — working, needs you, done; cooking timers, git branch chips, output sparklines on every card
+- **the disclaimer** — a floating macos overlay that finds you anywhere (over full screen apps too) when agents finish or stop to ask permission
+- **away mode** — leave on purpose or let auto away slip you out; the overlay counts you back in
+- **the pr bay** — squeeze the analog trigger until the ring fills and the merge lands
+- **hunk judgment** — accept and reject claude's proposals with the shoulder buttons
+- **broadcast** — mirror your typing into every agent at once and race them
+- **the agent group** — duplicate, restart or kill an agent from the wheel
+- **rumble with an audio twin** — a tasteful haptic language, and a synthesized sound pack that speaks it too
+- **four themes** — mint, peach, lavender, and a midnight dark mode
+- **wispr push to talk** — hold the stick, talk, let go
+- **tmux persistence** — sessions survive restarts and adopt from any terminal
+- **a background daemon** — `thumbwar daemon install` and the cockpit is always on
+- **a keyboard path for everything** — no pad required
+
 ## quick start
 
 ```bash
