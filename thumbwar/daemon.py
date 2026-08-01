@@ -71,9 +71,18 @@ def status() -> None:
     if not PLIST.exists():
         print("not installed. `thumbwar daemon install` to run at login.")
         return
-    code = _launchctl("print", f"{_domain()}/{LABEL}")
+    try:
+        out = subprocess.run(["launchctl", "print", f"{_domain()}/{LABEL}"],
+                             capture_output=True, text=True)
+    except OSError:
+        out = None
     print(f"installed at {PLIST}")
-    print("running." if code == 0 else "installed but not loaded. log out and in, or bootstrap it.")
+    if out is None or out.returncode != 0:
+        print("installed but not loaded. log out and in, or bootstrap it.")
+    elif "state = running" in out.stdout:
+        print("running.")
+    else:
+        print(f"loaded but not running. check {LOG}")
 
 
 def cli(argv) -> None:

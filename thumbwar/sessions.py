@@ -97,8 +97,11 @@ def parse_git_status(text: str) -> tuple:
 
 async def git_info(cwd: str) -> tuple:
     try:
+        # --no-optional-locks: a background poller must never take
+        # index.lock in the very repo an agent is committing in.
         proc = await asyncio.create_subprocess_exec(
-            "git", "-C", cwd, "status", "--porcelain", "--branch",
+            "git", "--no-optional-locks", "-C", cwd,
+            "status", "--porcelain", "--branch",
             stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
     except OSError:

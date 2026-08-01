@@ -32,13 +32,20 @@ export function send(obj) {
 
 const enc = new TextEncoder();
 
+// xterm answers terminal queries (cursor position, device attributes,
+// colors) on the same channel as keystrokes. those replies must stay
+// pinned to their own pty, or broadcast would type one card's row/column
+// numbers into every other agent.
+const PROTO_REPLY = /^\x1b(\[[0-9?>;]|\]|P)/;
+
 export function sendStdin(id, text) {
   const bytes = typeof text === 'string' ? enc.encode(text) : text;
   let bin = '';
   for (const b of bytes) bin += String.fromCharCode(b);
   const data = btoa(bin);
-  // broadcast mode mirrors every keystroke into every agent
-  if (S.broadcast && S.order.includes(id)) {
+  // broadcast mode mirrors human-shaped input into every agent
+  if (S.broadcast && S.order.includes(id)
+      && !PROTO_REPLY.test(typeof text === 'string' ? text : bin)) {
     for (const sid of S.order) send({ t: 'stdin', id: sid, data });
     return;
   }

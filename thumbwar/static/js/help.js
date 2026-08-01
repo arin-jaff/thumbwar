@@ -93,7 +93,7 @@ function render() {
       `${chip('b', 'var(--orange)')} back · hold interrupts`,
       `${chip('a', 'var(--mint-deep)')} type · send enter`,
     ], [578, 148])}
-    ${callout(620, 232, 'start', ['flip cards · up zoom · down grid', 'points the wheel', 'r3 · recenter'], [494, 232])}
+    ${callout(620, 232, 'start', ['flip cards · up zoom · down grid', 'points the wheel', 'r3 · jump to needs you · recenter'], [494, 232])}
     ${callout(620, 305, 'start', [`r4 · ${esc(q.r4 || '—')}`, `pr · ${esc(q.pr || '—')}`], [574, 308])}
 
     <text class="map-label dim" x="430" y="352" text-anchor="middle">select · settings&#160;&#160;&#160;start · new agent&#160;&#160;&#160;share · away&#160;&#160;&#160;guide · this map</text>

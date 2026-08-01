@@ -87,7 +87,11 @@ function onDown(name) {
       if (l3Held) { send({ t: 'interrupt_all' }); return; }
       // r3 takes you to whatever matters: the next agent waiting on a
       // decision if there is one, otherwise just recenter the view.
-      if (S.mode === 'deck' && deck.jumpNeedsYou()) { rumble('thock'); return; }
+      if (deck.jumpNeedsYou()) {
+        if (S.mode !== 'deck') setMode('deck');
+        rumble('thock');
+        return;
+      }
       deck.setZoom(false); deck.setGrid(false);
       const s = activeSession();
       if (s) s.term.toBottom();
@@ -191,6 +195,15 @@ export function releaseAll() {
 
 const PANELS = ['wheel', 'prs', 'spawn', 'settings'];
 const lDig = {};   // direction name -> 'panel' | 'deck'
+
+// a mode change orphans held repeats: the interval routes by the CURRENT
+// mode, so a held roll would re-open the wheel right after a fired it.
+// drop every repeater and stick classification; a still-held stick gets
+// re-classified next frame under the new mode's rules.
+on('mode', () => {
+  for (const key of [...repeaters.keys()]) stopRepeat(key.replace(/:delay$/, ''));
+  for (const key of Object.keys(lDig)) delete lDig[key];
+});
 
 function lstickMenus() {
   const dirs = [

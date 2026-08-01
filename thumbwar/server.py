@@ -245,7 +245,11 @@ class Hub:
         elif t == "duplicate":
             self.touch()
             src = self.mgr.sessions.get(m.get("id", ""))
-            if src:
+            # an adopted card's cmd is the literal attach command; replaying
+            # it inside a fresh tmux would just nest-and-die instantly.
+            if src and src.adopted:
+                self.toast("adopted sessions cannot be duplicated", "error")
+            elif src:
                 try:
                     self.mgr.spawn(src.cwd, src.name, src.cmd)
                 except RuntimeError as exc:
@@ -253,7 +257,9 @@ class Hub:
         elif t == "restart":
             self.touch()
             src = self.mgr.sessions.get(m.get("id", ""))
-            if src:
+            if src and src.adopted:
+                self.toast("adopted sessions cannot be restarted from here", "error")
+            elif src:
                 cwd, name, cmd = src.cwd, src.name, src.cmd
                 self.mgr.kill(src.id)
                 try:

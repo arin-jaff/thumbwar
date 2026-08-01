@@ -6,6 +6,7 @@ import { rumble } from './rumble.js';
 import { setMode } from './modes.js';
 import { SPINNER } from './art.js';
 import { confetti } from './confetti.js';
+import { sound } from './sound.js';
 
 const namesEl = document.getElementById('done-names');
 const ringEl = document.getElementById('done-ring');
@@ -54,6 +55,7 @@ on('ws:alldone', ({ names }) => {
     : 'everything wrapped up';
   setMode('done');
   confetti();
+  sound('done');       // the pad's triple pulse comes from the server side
   startCountdown();
 });
 

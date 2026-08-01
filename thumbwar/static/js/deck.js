@@ -94,10 +94,11 @@ export function jump(index) {
   }
 }
 
-// take the thumb to the next agent waiting on a decision, if any
+// take the thumb to the next agent waiting on a decision, if any.
+// the active card never counts: r3 on it must fall through to recenter.
 export function jumpNeedsYou() {
   const n = S.order.length;
-  for (let step = 1; step <= n; step++) {
+  for (let step = 1; step < n; step++) {
     const i = (S.active + step) % n;
     if (S.sessions.get(S.order[i]).state === 'needs_you') { jump(i); return true; }
   }
