@@ -172,6 +172,38 @@ export function releaseAll() {
   for (const key of [...repeaters.keys()]) stopRepeat(key.replace(/:delay$/, ''));
   gpState.buttons.fill(false);
   gpState.dig = {};
+  for (const key of Object.keys(lDig)) delete lDig[key];
+}
+
+// -- left stick: video game menus ------------------------------------------
+// in any panel the left stick is the dpad (auto repeat included), so every
+// menu drives like a game menu. in the deck a horizontal flick flips cards.
+
+const PANELS = ['wheel', 'prs', 'spawn', 'settings'];
+const lDig = {};   // direction name -> 'panel' | 'deck'
+
+function lstickMenus() {
+  const dirs = [
+    ['dpad_right', axes.lx, Math.abs(axes.ly)],
+    ['dpad_left', -axes.lx, Math.abs(axes.ly)],
+    ['dpad_up', axes.ly, Math.abs(axes.lx)],
+    ['dpad_down', -axes.ly, Math.abs(axes.lx)],
+  ];
+  const inPanel = PANELS.includes(S.mode);
+  for (const [name, v, other] of dirs) {
+    const held = lDig[name];
+    if (!held && v > 0.6 && v > other * 1.4) {
+      if (inPanel) { lDig[name] = 'panel'; pressWithRepeat(name); }
+      else if (S.mode === 'deck' && !S.typing
+               && (name === 'dpad_left' || name === 'dpad_right')) {
+        lDig[name] = 'deck';
+        deck.nav(name === 'dpad_left' ? -1 : 1);
+      }
+    } else if (held && v < 0.35) {
+      delete lDig[name];
+      if (held === 'panel') release(name);
+    }
+  }
 }
 
 // -- dpad auto repeat -----------------------------------------------------
@@ -305,6 +337,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   pollGamepad();
+  lstickMenus();
 
   if (S.mode === 'deck' && !S.grid) {
     const s = activeSession();
